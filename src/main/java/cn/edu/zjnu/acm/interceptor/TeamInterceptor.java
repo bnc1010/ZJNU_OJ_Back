@@ -3,7 +3,7 @@ package cn.edu.zjnu.acm.interceptor;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Team;
 import cn.edu.zjnu.acm.entity.oj.Teammate;
-import cn.edu.zjnu.acm.exception.GlobalExceptionResolver;
+import cn.edu.zjnu.acm.common.exception.GlobalExceptionResolver;
 import cn.edu.zjnu.acm.service.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;

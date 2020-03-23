@@ -4,7 +4,7 @@ import cn.edu.zjnu.acm.config.Config;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Problem;
 import cn.edu.zjnu.acm.entity.oj.Solution;
-import cn.edu.zjnu.acm.exception.NotFoundException;
+import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.service.ProblemService;
 import cn.edu.zjnu.acm.service.SolutionService;
 import cn.edu.zjnu.acm.service.UserService;

@@ -1,10 +1,12 @@
 package cn.edu.zjnu.acm.entity;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import javax.persistence.*;
 import java.time.Instant;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @Entity
 public class ImageLog extends LogBase {

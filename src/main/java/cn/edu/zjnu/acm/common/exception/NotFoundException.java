@@ -1,10 +1,10 @@
-package cn.edu.zjnu.acm.exception;
+package cn.edu.zjnu.acm.common.exception;
 
-public class ForbiddenException extends RuntimeException {
-    public ForbiddenException() {
+public class NotFoundException extends RuntimeException {
+    public NotFoundException() {
     }
 
-    public ForbiddenException(String message) {
+    public NotFoundException(String message) {
         super(message);
     }
 
@@ -15,6 +15,6 @@ public class ForbiddenException extends RuntimeException {
                 return super.getMessage();
         } catch (Exception e) {
         }
-        return "Forbidden";
+        return "Not Found";
     }
 }

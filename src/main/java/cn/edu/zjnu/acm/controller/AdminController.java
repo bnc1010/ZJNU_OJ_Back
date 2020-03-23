@@ -8,8 +8,8 @@ import cn.edu.zjnu.acm.entity.oj.Contest;
 import cn.edu.zjnu.acm.entity.oj.ContestProblem;
 import cn.edu.zjnu.acm.entity.oj.Problem;
 import cn.edu.zjnu.acm.entity.oj.Tag;
-import cn.edu.zjnu.acm.exception.ForbiddenException;
-import cn.edu.zjnu.acm.exception.NotFoundException;
+import cn.edu.zjnu.acm.common.exception.ForbiddenException;
+import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.repo.contest.ContestProblemRepository;
 import cn.edu.zjnu.acm.repo.problem.AnalysisRepository;
 import cn.edu.zjnu.acm.repo.problem.ProblemRepository;
@@ -23,6 +23,8 @@ import cn.edu.zjnu.acm.service.ProblemService;
 import cn.edu.zjnu.acm.service.SolutionService;
 import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.RestfulResult;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -39,9 +41,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+@Slf4j
+@Api(value = "API - AdminController", description = "管理api")
 @RestController
 @RequestMapping("/api/admin")
-@Slf4j
 public class AdminController {
     public static final int PAGE_SIZE = 50;
     private static final ExecutorService threadPool = Executors.newFixedThreadPool(200);
@@ -82,6 +85,7 @@ public class AdminController {
         return new UpdateConfig(config);
     }
 
+    @ApiOperation(value="系统设置", notes="系统设置", produces="application/json")
     @PostMapping("/config")
     public String updateConfig(@RequestBody UpdateConfig updateConfig) {
         log.info(updateConfig.toString());
@@ -98,6 +102,8 @@ public class AdminController {
         return "success";
     }
 
+
+    @ApiOperation(value="题目管理", notes="题目管理", produces="application/json")
     @GetMapping("/problem")
     public Page<Problem> getAllProblems(@RequestParam(value = "page", defaultValue = "0") int page,
                                         @RequestParam(value = "search", defaultValue = "") String search) {
@@ -107,6 +113,7 @@ public class AdminController {
         return problemPage;
     }
 
+    @ApiOperation(value="比赛管理", notes="比赛管理", produces="application/json")
     @GetMapping("/contest")
     public RestfulResult getAllContest(@RequestParam(value = "page", defaultValue = "0") int page,
                                        @RequestParam(value = "search", defaultValue = "") String search) {
@@ -118,6 +125,7 @@ public class AdminController {
         return new RestfulResult(200, "success", contestPage);
     }
 
+    @ApiOperation(value="用户管理", notes="用户管理", produces="application/json")
     @GetMapping("/user")
     public RestfulResult getAllUsers(@RequestParam(value = "page", defaultValue = "0") int page,
                                      @RequestParam(value = "search", defaultValue = "") String search) {
@@ -126,6 +134,8 @@ public class AdminController {
         return new RestfulResult(200, "success", users);
     }
 
+
+    @ApiOperation(value="用户密码重置", notes="用户密码重置", produces="application/json")
     @GetMapping("/user/reset/{uid:[0-9]+}")
     public RestfulResult resetUserPassword(@PathVariable Long uid) {
         User u = userService.getUserById(uid);
@@ -194,6 +204,7 @@ public class AdminController {
         return "success";
     }
 
+    @ApiOperation(value="更新题目", notes="更新题目", produces="application/json")
     @PostMapping("/problem/edit/{pid:[0-9]+}")
     public String updateProblem(@RequestBody JsonProblem problem, @PathVariable("pid") Long pid) {
         Problem p = problemService.getProblemById(pid);
@@ -217,6 +228,7 @@ public class AdminController {
         return "success";
     }
 
+    @ApiOperation(value="显示题目", notes="显示题目", produces="application/json")
     @GetMapping("/problem/{id:[0-9]+}")
     public Problem showProblem(@PathVariable Long id) {
         Problem problem = problemService.getProblemById(id);
@@ -225,6 +237,7 @@ public class AdminController {
         return problem;
     }
 
+    @ApiOperation(value="删除题目", notes="删除题目", produces="application/json")
     @DeleteMapping("/problem/{id:[0-9]+}")
     @Transactional
     public RestfulResult deleteProblem(@SessionAttribute User currentUser, @PathVariable Long id) {

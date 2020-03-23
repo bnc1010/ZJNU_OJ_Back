@@ -1,7 +1,7 @@
 package cn.edu.zjnu.acm.interceptor;
 
 import cn.edu.zjnu.acm.entity.oj.Contest;
-import cn.edu.zjnu.acm.exception.GlobalExceptionResolver;
+import cn.edu.zjnu.acm.common.exception.GlobalExceptionResolver;
 import cn.edu.zjnu.acm.service.ContestService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

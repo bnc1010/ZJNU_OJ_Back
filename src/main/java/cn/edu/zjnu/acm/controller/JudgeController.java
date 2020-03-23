@@ -2,7 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.config.Config;
 import cn.edu.zjnu.acm.entity.oj.Solution;
-import cn.edu.zjnu.acm.exception.NotFoundException;
+import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.service.JudgeService;
 import cn.edu.zjnu.acm.service.SolutionService;
 import lombok.Data;

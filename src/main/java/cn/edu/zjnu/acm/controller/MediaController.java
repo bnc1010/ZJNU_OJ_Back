@@ -2,7 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.entity.ImageLog;
 import cn.edu.zjnu.acm.entity.User;
-import cn.edu.zjnu.acm.exception.NotFoundException;
+import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.repo.logs.ImageLogRepository;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;

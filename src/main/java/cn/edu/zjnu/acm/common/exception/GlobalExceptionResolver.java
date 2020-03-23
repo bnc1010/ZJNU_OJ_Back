@@ -1,4 +1,4 @@
-package cn.edu.zjnu.acm.exception;
+package cn.edu.zjnu.acm.common.exception;
 
 import cn.edu.zjnu.acm.util.RestfulResult;
 import cn.edu.zjnu.acm.util.Result;

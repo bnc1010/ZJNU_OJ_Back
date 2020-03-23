@@ -2,8 +2,8 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.entity.Teacher;
 import cn.edu.zjnu.acm.entity.User;
-import cn.edu.zjnu.acm.exception.NeedLoginException;
-import cn.edu.zjnu.acm.exception.NotFoundException;
+import cn.edu.zjnu.acm.common.exception.NeedLoginException;
+import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.RestfulResult;
 import org.springframework.ui.Model;

@@ -4,9 +4,9 @@ services:
     image: mariadb:10.4
     container_name: db
     ports:
-      - 3306:3306
+      - 3307:3306
     volumes:
-      - /mysql:/var/lib/mysql  # data storage path
+      - /var/judge/mysql:/mysql  # data storage path
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=1234
@@ -23,7 +23,7 @@ services:
     image: registry.cn-hangzhou.aliyuncs.com/jinmingyi/judgerserver
     container_name: judger
     volumes:
-      - /ojdata:/ojdata # problem test data path
+      - /var/judge/ojdata:/ojdata # problem test data path
     ports:
       - 12345:12345
       - 8000:8000
@@ -47,12 +47,12 @@ services:
     container_name: oj
     depends_on:
       - db
-      - judger
+      - judgerserver
       - redis
     ports:
       - 8080:8080
     volumes:
-      - /onlinejudge:/onlinejudge # log files
+      - /usr/judge/onlinejudge:/onlinejudge # log files
     restart: always
     environment:
       - TZ=Asia/Shanghai

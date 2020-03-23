@@ -4,10 +4,12 @@ import cn.edu.zjnu.acm.entity.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import javax.persistence.Entity;
 import javax.persistence.ManyToOne;
 
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
