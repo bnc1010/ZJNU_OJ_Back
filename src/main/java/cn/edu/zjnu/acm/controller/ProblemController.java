@@ -151,7 +151,7 @@ public class ProblemController {
         String language = submitCodeObject.getLanguage();
         String _temp = checkSubmitFrequncy(session, source);
         if (_temp != null)
-            return new Result(403, _temp);
+            return new Result(403, _temp, null , null);
         User user = (User) session.getAttribute("currentUser");
         if (user == null || userService.getUserById(user.getId()) == null) {
             throw new NeedLoginException();
@@ -163,13 +163,13 @@ public class ProblemController {
         //null检验完成
         Solution solution = solutionService.insertSolution(new Solution(user, problem, language, source, request.getRemoteAddr(), share));
         if (solution == null)
-            return new Result(400, "submitted failed");
+            return new Result(400, "submitted failed", null , null);
         try {
 //            return restService.submitCode(solution) == null ? "judge failed" : "success";
             judgeService.submitCode(solution);
-            return new Result(200, "success");
+            return new Result(200, "success", null , null);
         } catch (Exception e) {
-            return new Result(500, "Internal error");
+            return new Result(500, "Internal error", null , null);
         }
     }
 

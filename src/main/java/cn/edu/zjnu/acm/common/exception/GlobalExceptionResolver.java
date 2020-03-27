@@ -16,7 +16,7 @@ import javax.validation.ConstraintViolationException;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionResolver {
-    public static final Result pleaseLoginResult = new Result(403, "请登录 Please Login");
+    public static final Result pleaseLoginResult = new Result(403, "请登录 Please Login", null, null);
 
     @ExceptionHandler(NeedLoginException.class)
     @ResponseBody
@@ -27,15 +27,15 @@ public class GlobalExceptionResolver {
     @ExceptionHandler(UnavailableException.class)
     @ResponseBody
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public Result unavilableHandle() {
-        return new Result(503, "维护中，不可用");
+    public Result unavailableHandle() {
+        return new Result(503, "维护中，不可用", null, null);
     }
 
     @ExceptionHandler({BindException.class, ConstraintViolationException.class})
     public Result validatorExceptionHandler(Exception e) {
         String msg = e instanceof BindException ? String.valueOf(((BindException) e).getBindingResult())
                 : String.valueOf(((ConstraintViolationException) e).getConstraintViolations());
-        return new Result(400, msg);
+        return new Result(400, msg, null, null);
     }
 
     @ExceptionHandler({MethodArgumentNotValidException.class})
@@ -55,14 +55,14 @@ public class GlobalExceptionResolver {
     @ResponseBody
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
     public Result notFoundExceptionHandle(NotFoundException e) {
-        return new Result(404, e.getMessage());
+        return new Result(404, e.getMessage(), null, null);
     }
 
     @ExceptionHandler(ForbiddenException.class)
     @ResponseBody
     @ResponseStatus(value = HttpStatus.FORBIDDEN)
     public Result forbiddenExceptionHandle(ForbiddenException e) {
-        return new Result(403, e.getMessage());
+        return new Result(403, e.getMessage(), null, null);
     }
 
     @ExceptionHandler(Exception.class)
@@ -70,6 +70,6 @@ public class GlobalExceptionResolver {
     @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
     public Result serverExceptionHandle(Exception e) {
         e.printStackTrace();
-        return new Result(500, "Internal Server Error");
+        return new Result(500, "Internal Server Error", null, null);
     }
 }

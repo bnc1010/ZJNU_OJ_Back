@@ -279,7 +279,7 @@ public class ContestController {
         String language = submitCodeObject.getLanguage();
         String _temp = ProblemController.checkSubmitFrequncy(session, source);
         if (_temp != null)
-            new Result(403, _temp);
+            new Result(403, _temp, null , null);
         @NotNull User user;
         try {
             user = (User) session.getAttribute("currentUser");
@@ -293,14 +293,14 @@ public class ContestController {
             Contest contest = contestService.getContestById(cid);
             Contest scontest = (Contest) session.getAttribute("contest" + cid);
             if (scontest == null || scontest.getId() != contest.getId()) {
-                return new Result(403, "Need attendance!");
+                return new Result(403, "Need attendance!", null , null);
             }
             if (contest.isEnded() || !contest.isStarted()) {
-                return new Result(403, "The contest is not Running!");
+                return new Result(403, "The contest is not Running!", null , null);
             }
             ContestProblem cproblem = contestProblemRepository.findByContestAndTempId(contest, pid).orElse(null);
             if (cproblem == null) {
-                return new Result(404, "Problem Not Exist");
+                return new Result(404, "Problem Not Exist", null , null);
             }
             Problem problem = cproblem.getProblem();
             Solution solution = new Solution(user, problem, language, source, request.getRemoteAddr(), share);

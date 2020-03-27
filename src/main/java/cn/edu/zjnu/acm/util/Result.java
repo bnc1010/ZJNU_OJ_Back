@@ -4,22 +4,61 @@ import lombok.Data;
 
 @Data
 public class Result {
-    int code = 200;
-    String message = "";
+    /**
+     * 数据集
+     */
+    protected Object data = null;
+    /**
+     * 返回信息
+     */
+    protected String message = "Request Success！";
+    /**
+     * 业务自定义状态码
+     */
+    protected Integer code = 200;
+    /**
+     * 全局附加数据
+     */
+    protected Object extra = null;
 
-    public Result(int code, String message) {
-        this.code = code;
+    public Object getData() {
+        return data;
+    }
+
+    public void setData(Object data) {
+        this.data = data;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
         this.message = message;
     }
 
-    public Result() {
+    public Integer getCode() {
+        return code;
     }
 
-    @Override
-    public String toString() {
-        return "{" +
-                "code=" + code +
-                ", message='" + message + '\'' +
-                '}';
+    public void setCode(Integer code) {
+        this.code = code;
+    }
+
+    public Object getExtra() {
+        return extra;
+    }
+
+    public void setExtra(Object etxra) {
+        this.extra = etxra;
+    }
+
+    public Result(){}
+
+    public Result(Integer code, String message, Object data, Object extra){
+        this.code = code;
+        this.message = message;
+        this.data = data;
+        this.extra = extra;
     }
 }
