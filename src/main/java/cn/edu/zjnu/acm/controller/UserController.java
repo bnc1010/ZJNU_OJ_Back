@@ -1,5 +1,6 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
 import cn.edu.zjnu.acm.entity.Teacher;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.common.exception.NeedLoginException;
@@ -24,19 +25,23 @@ public class UserController {
         this.session = session;
     }
 
+    @IgnoreSecurity
     @GetMapping("/register")
     public ModelAndView register() {
         return new ModelAndView("user/register");
     }
 
+    @IgnoreSecurity
     @PostMapping("/register")
     public RestfulResult registerUser(@RequestBody User user) {
+        System.out.println(user.toString());
         try {
             User t_user = userService.registerUser(user);
             if (t_user != null)
                 return RestfulResult.successResult();
             else return new RestfulResult(400, "用户名已存在 user already existed");
         } catch (ConstraintViolationException e) {
+            System.out.println(e.getMessage());
             return new RestfulResult(400, "format error 格式错误");
         }
     }
@@ -53,6 +58,7 @@ public class UserController {
         return login();
     }
 
+    @IgnoreSecurity
     @PostMapping("/login")
     public RestfulResult loginUser(@RequestBody User user, HttpSession session, Model m) {
         User login_user = userService.loginUser(user);

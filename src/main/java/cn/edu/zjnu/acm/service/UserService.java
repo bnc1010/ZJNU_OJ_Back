@@ -1,5 +1,6 @@
 package cn.edu.zjnu.acm.service;
 
+import cn.edu.zjnu.acm.common.utils.StringUtils;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.UserProfile;
 import cn.edu.zjnu.acm.repo.user.TeacherRepository;
@@ -45,6 +46,7 @@ public class UserService {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         u.setPassword(encoder.encode(u.getPassword()));
         UserProfile userProfile = new UserProfile();
+        u.setSalt(StringUtils.randomStringFromAlphaAndDigital(4));
         u = userRepository.save(u);
         if (u == null)
             return null;

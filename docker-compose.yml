@@ -37,6 +37,10 @@ services:
   redis:
     image: redis:latest
     container_name: redis
+    volumes:
+      - /var/judge/redis:/redis # problem test data path
+    ports:
+      - 6379:6378
     environment:
       - TZ=Asia/Shanghai
       - LC_ALL=C

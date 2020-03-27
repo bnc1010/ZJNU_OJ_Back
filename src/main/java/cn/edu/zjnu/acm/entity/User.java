@@ -39,8 +39,16 @@ public class User implements Cloneable, Comparable {
     @Column(nullable = false, columnDefinition = "VARCHAR(250) default ''")
     @Size(max = 250)
     private String intro;
+    @Column(nullable = false, columnDefinition = "VARCHAR(20)")
+    private String salt;
+    @Column(nullable = false, columnDefinition = "INTEGER default 1000")
+    private int level;
+
+
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "user")
     private UserProfile userProfile;
+
+
 
     public User() {
         this.username = "";
@@ -48,14 +56,18 @@ public class User implements Cloneable, Comparable {
         this.email = "";
         this.name = "";
         this.intro = "";
+        this.salt = "";
+        this.level = 1000;
     }
 
-    public User(@NotEmpty @Size(min = 6, max = 30) String username, @NotEmpty @Size(min = 6, max = 30) String password, @NotEmpty @Size(min = 1, max = 30) String name, @Size(min = 4, max = 200) String email, @Size(max = 250) String intro) {
+    public User(@NotEmpty @Size(min = 6, max = 30) String username, @NotEmpty @Size(min = 6, max = 30) String password, @NotEmpty @Size(min = 1, max = 30) String name, @Size(min = 4, max = 200) String email, @Size(max = 250) String intro, String salt, int level) {
         this.username = username;
         this.password = password;
         this.name = name;
         this.email = email;
         this.intro = intro;
+        this.salt = salt;
+        this.level = level;
     }
 
     public User clone() throws CloneNotSupportedException {
@@ -91,6 +103,8 @@ public class User implements Cloneable, Comparable {
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
                 ", intro='" + intro + '\'' +
+                ", salt='" + salt + '\'' +
+                ", level='" + level + '\'' +
                 '}';
     }
 
