@@ -1,13 +1,12 @@
 package cn.edu.zjnu.acm.common.ve;
 
-import cn.edu.zjnu.acm.entity.User;
 import lombok.Data;
 
 import java.time.Instant;
 
 @Data
 public class UserVO {
-    Instant createtime = Instant.now();
+    Instant createtime;
     private Long id;
     private String username;
     private String password;
@@ -16,5 +15,23 @@ public class UserVO {
     private String intro;
     private String salt;
     private int level;
+    private String token;
 
+
+    @Override
+    public String toString() {
+        return "{" +
+                " createtime=" + createtime +
+                " id=" + id +
+                " username=" + username +
+                " password=" + password +
+                " name=" + name +
+                " email=" + email +
+                " intro=" + intro +
+                " email=" + email +
+                " salt=" + salt +
+                " level=" + level +
+                " token=" + token +
+                '}';
+    }
 }

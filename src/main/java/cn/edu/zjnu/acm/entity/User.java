@@ -60,6 +60,16 @@ public class User implements Cloneable, Comparable {
         this.level = 1000;
     }
 
+    public User(@NotEmpty @Size(min = 6, max = 30) String username, @NotEmpty @Size(min = 6, max = 30) String password) {
+        this.username = username;
+        this.password = password;
+        this.email = "";
+        this.name = "";
+        this.intro = "";
+        this.salt = "";
+        this.level = 1000;
+    }
+
     public User(@NotEmpty @Size(min = 6, max = 30) String username, @NotEmpty @Size(min = 6, max = 30) String password, @NotEmpty @Size(min = 1, max = 30) String name, @Size(min = 4, max = 200) String email, @Size(max = 250) String intro, String salt, int level) {
         this.username = username;
         this.password = password;

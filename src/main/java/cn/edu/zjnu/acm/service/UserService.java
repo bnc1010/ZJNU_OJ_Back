@@ -1,5 +1,6 @@
 package cn.edu.zjnu.acm.service;
 
+import cn.edu.zjnu.acm.common.exception.AuthorityException;
 import cn.edu.zjnu.acm.common.utils.StringUtils;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.UserProfile;
@@ -42,14 +43,14 @@ public class UserService {
     @Transactional
     public User registerUser(User u) {
         if (userRepository.findByUsername(u.getUsername()).isPresent())
-            return null;
+            throw new AuthorityException("该用户名已存在");
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         u.setPassword(encoder.encode(u.getPassword()));
         UserProfile userProfile = new UserProfile();
         u.setSalt(StringUtils.randomStringFromAlphaAndDigital(4));
         u = userRepository.save(u);
         if (u == null)
-            return null;
+            throw new AuthorityException("注册失败");
         userProfile.setUser(u);
         userProfileRepository.save(userProfile);
         return u;
@@ -73,10 +74,10 @@ public class UserService {
     public User loginUser(User user) {
         User u = userRepository.findByUsername(user.getUsername()).orElse(null);
         if (u == null)
-            return null;
+            throw new AuthorityException("该用户名不存在");
         if (checkPassword(user.getPassword(), u.getPassword()))
             return u;
-        return null;
+        throw new AuthorityException("用户名或密码错误");
     }
 
     public List<User> userList() {

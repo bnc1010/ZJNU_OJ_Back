@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.ArrayList;
 import java.util.List;
 
-@Api(description = "权限管理", tags = "PermissionHandler", basePath = "/system")
+@Api(description = "权限管理", tags = "PermissionController", basePath = "/usermanager")
 @Controller
 @Slf4j
-@RequestMapping("/system/permission")
+@RequestMapping("/api/usermanager/permission")
 public class PermissionController {
     @Autowired
     private TokenManager tokenManager;
@@ -75,7 +75,7 @@ public class PermissionController {
         try {
             String tk = requestRole.getToken();
             userOperationService.checkTokenNotEmpty(requestRole.getToken());
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            tokenManager.getToken(Base64Util.decodeData(tk));
             List permissions = roleService.getPermissionIdByRoleId(requestRole.getId());
             restfulResult.setData(permissions);
         } catch (Exception e) {
@@ -106,7 +106,7 @@ public class PermissionController {
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] authorityCode = authorityManager.getAuthorityCode(tokenModel.getUserId());
             tokenManager.deleteToken(tokenModel.getUserId());
-            TokenModel token = tokenManager.createToken(tokenModel.getUserId(), authorityCode[0], authorityCode[1]);
+            TokenModel token = tokenManager.createToken(tokenModel.getUserId(), authorityCode[0], authorityCode[1], tokenModel.getSalt());
             restfulResult.setData(Base64Util.encodeData(token.getToken()));
         }
         catch (Exception e){

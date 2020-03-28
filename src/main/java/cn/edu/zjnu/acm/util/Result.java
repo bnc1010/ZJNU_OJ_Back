@@ -2,24 +2,21 @@ package cn.edu.zjnu.acm.util;
 
 import lombok.Data;
 
-@Data
 public class Result {
     /**
      * 数据集
      */
-    protected Object data = null;
+    public Object data = null;
     /**
      * 返回信息
      */
-    protected String message = "Request Success！";
+    public String message = "Request Success！";
     /**
      * 业务自定义状态码
      */
-    protected Integer code = 200;
-    /**
-     * 全局附加数据
-     */
-    protected Object extra = null;
+    public Integer code = 200;
+
+    public Object extra = null;
 
     public Object getData() {
         return data;
@@ -60,5 +57,15 @@ public class Result {
         this.message = message;
         this.data = data;
         this.extra = extra;
+    }
+
+    @Override
+    public String toString() {
+        return "{" +
+                "code=" + code +
+                ", message='" + message +
+                ", data=" + data +
+                ", extra=" + extra +
+                '}';
     }
 }

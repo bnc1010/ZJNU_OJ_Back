@@ -24,10 +24,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Api(description = "角色管理", tags = "RoleHandler", basePath = "/system")
+@Api(description = "角色管理", tags = "RoleController", basePath = "/usermanager")
 @Controller
 @Slf4j
-@RequestMapping("/system/role")
+@RequestMapping("/api/usermanager/role")
 public class RoleController{
 
     @Autowired

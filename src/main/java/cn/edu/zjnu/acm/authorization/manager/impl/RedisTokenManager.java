@@ -4,7 +4,7 @@ import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
-import cn.edu.zjnu.acm.common.utils.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
  * @see cn.edu.zjnu.acm.authorization.manager.TokenManager
  */
 @Component
+@Slf4j
 public class RedisTokenManager implements TokenManager {
 
     private RedisTemplate<Long, Object> redis;
@@ -33,16 +35,17 @@ public class RedisTokenManager implements TokenManager {
     }
 
     @Override
-    public TokenModel createToken(long userId, String permissionCode, String roleCode) {
+    public TokenModel createToken(long userId, String permissionCode, String roleCode, String salt) {
         //uuid
         String uuid = UUID.randomUUID().toString().replace("-", "");
         //时间戳
         String timestamp = SDF.format(new Date());
-        //token => userId_timestamp_uuid_permissionCode_roleCode;
-        String token = userId + "_" + timestamp + "_" + uuid + "_" + permissionCode + "_" + roleCode;
-        TokenModel model = new TokenModel(userId, uuid, timestamp, permissionCode, roleCode);
+        //token => userId_timestamp_uuid_permissionCode_roleCode_salt;
+        String token = userId + "_" + timestamp + "_" + uuid + "_" + permissionCode + "_" + roleCode + "_" + salt;
+        TokenModel model = new TokenModel(userId, uuid, timestamp, permissionCode, roleCode, salt);
+
         //存储到redis并设置过期时间(有效期为2个小时)
-        redis.boundValueOps(userId).set(Base64Util.encodeData(token), Constants.TOKEN_EXPIRES_HOUR, TimeUnit.HOURS);
+        redis.boundValueOps(userId).set(Objects.requireNonNull(Base64Util.encodeData(token)), Constants.TOKEN_EXPIRES_HOUR, TimeUnit.HOURS);
         return model;
     }
 
@@ -52,7 +55,7 @@ public class RedisTokenManager implements TokenManager {
             return null;
         }
         String[] param = authentication.split("_");
-        if (param.length != 5) {
+        if (param.length != 6) {
             return null;
         }
 
@@ -62,7 +65,8 @@ public class RedisTokenManager implements TokenManager {
         String uuid = param[2];
         String permissionCode = param[3];
         String roleCode = param[4];
-        return new TokenModel(userId, uuid, timestamp, permissionCode, roleCode);
+        String salt = param[5];
+        return new TokenModel(userId, uuid, timestamp, permissionCode, roleCode, salt);
     }
 
     @Override
@@ -70,10 +74,15 @@ public class RedisTokenManager implements TokenManager {
         if (model == null) {
             return false;
         }
-        String token = redis.boundValueOps(model.getUserId()).get().toString();
-        if (token == null || !(Base64Util.decodeData(token)).equals(model.getToken())) {
+        Object token = redis.boundValueOps(model.getUserId()).get();
+        if (token == null) {
             return false;
         }
+        String tokenString = token.toString();
+        if (!Objects.equals(Base64Util.decodeData(tokenString), model.getToken())){
+            return false;
+        }
+
         //如果验证成功，说明此用户进行了一次有效操作，延长token的过期时间(2个小时)
         redis.boundValueOps(model.getUserId()).expire(Constants.TOKEN_EXPIRES_HOUR, TimeUnit.HOURS);
         return true;
@@ -88,7 +97,7 @@ public class RedisTokenManager implements TokenManager {
 
     @Override
     public boolean hasToken(long userId) {
-        String token = redis.boundValueOps(userId).get().toString();
-        return StringUtils.notNull(token);
+        Object token = redis.boundValueOps(userId).get();
+        return token != null;
     }
 }

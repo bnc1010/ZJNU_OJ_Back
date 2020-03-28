@@ -1,7 +1,7 @@
 package cn.edu.zjnu.acm.interceptor;
 
 import cn.edu.zjnu.acm.authorization.manager.AuthorityManager;
-import cn.edu.zjnu.acm.authorization.manager.TokenManager;
+import cn.edu.zjnu.acm.authorization.manager.impl.RedisTokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
 import cn.edu.zjnu.acm.common.constant.Constants;
@@ -23,7 +23,7 @@ import java.net.URL;
 @Slf4j
 public class AuthenticationInterceptor implements HandlerInterceptor {
     @Autowired
-    TokenManager tokenManager;
+    RedisTokenManager tokenManager;
 
     @Autowired
     AuthorityManager authorityManager;
@@ -55,11 +55,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         if (method.isAnnotationPresent(IgnoreSecurity.class)) {
             return true;
         }
-
         // 从 request header 中获取当前 token
         String authentication = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(authentication));
-
         // 检查有效性(检查是否登录)
         if (!tokenManager.checkToken(tokenModel)) {
             String message = "token " + Base64Util.decodeData(authentication) + " is invalid！！！";

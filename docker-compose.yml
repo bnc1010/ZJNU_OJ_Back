@@ -40,7 +40,8 @@ services:
     volumes:
       - /var/judge/redis:/redis # problem test data path
     ports:
-      - 6379:6378
+      - 16379:6379
+    restart: always
     environment:
       - TZ=Asia/Shanghai
       - LC_ALL=C

@@ -18,8 +18,6 @@ import javax.validation.ValidationException;
 
 /**
  * 全局异常处理切面
- * @author leeyom
- * @date 2017年10月19日 10:41
  */
 
 @ControllerAdvice

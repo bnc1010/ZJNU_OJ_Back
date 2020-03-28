@@ -34,14 +34,12 @@ public class UserController {
     @IgnoreSecurity
     @PostMapping("/register")
     public RestfulResult registerUser(@RequestBody User user) {
-        System.out.println(user.toString());
         try {
             User t_user = userService.registerUser(user);
             if (t_user != null)
                 return RestfulResult.successResult();
             else return new RestfulResult(400, "用户名已存在 user already existed");
         } catch (ConstraintViolationException e) {
-            System.out.println(e.getMessage());
             return new RestfulResult(400, "format error 格式错误");
         }
     }

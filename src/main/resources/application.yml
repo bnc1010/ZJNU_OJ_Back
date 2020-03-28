@@ -18,8 +18,8 @@ spring:
     redis:
       time-to-live: 120
   redis:
-    host: ${REDIS_URL:localhost}
-    port: ${REDIS_PORT:6379}
+    host: ${REDIS_URL:0.0.0.0}
+    port: ${REDIS_PORT:16379}
   devtools:
     restart:
       enabled: false
