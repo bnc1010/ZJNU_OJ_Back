@@ -3,6 +3,7 @@ package cn.edu.zjnu.acm.controller;
 import cn.edu.zjnu.acm.authorization.manager.AuthorityManager;
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.exception.AuthorityException;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.common.ve.PermissionVO;
 import cn.edu.zjnu.acm.common.ve.RoleVO;
@@ -27,7 +28,7 @@ import java.util.List;
 @Api(description = "权限管理", tags = "PermissionController", basePath = "/usermanager")
 @Controller
 @Slf4j
-@RequestMapping("/api/usermanager/permission")
+@RequestMapping("/api/system/permission")
 public class PermissionController {
     @Autowired
     private TokenManager tokenManager;
@@ -81,7 +82,7 @@ public class PermissionController {
         } catch (Exception e) {
             restfulResult.setCode(500);
             restfulResult.setMessage("Request permission Failed！");
-            log.info("查询失败" + requestRole.getId(), e);
+            log.error("查询失败" + requestRole.getId(), e);
         }
         return restfulResult;
     }
@@ -93,7 +94,9 @@ public class PermissionController {
     @ResponseBody
     public RestfulResult addPermission(@RequestBody PermissionVO requestPermission) {
         RestfulResult restfulResult = new RestfulResult();
+        TokenModel tokenModel = null;
         try {
+            userOperationService.checkOperationToUserByToken(requestPermission.getToken(), -1);
             Permission permission = new Permission();
             permission.setName(requestPermission.getName());
             permission.setUrl(requestPermission.getUrl());
@@ -103,21 +106,25 @@ public class PermissionController {
             List pList = new ArrayList<Integer>();pList.add(pId);
             roleService.grantPrivileges(1,pList);
             String tk = requestPermission.getToken();
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] authorityCode = authorityManager.getAuthorityCode(tokenModel.getUserId());
             tokenManager.deleteToken(tokenModel.getUserId());
             TokenModel token = tokenManager.createToken(tokenModel.getUserId(), authorityCode[0], authorityCode[1], tokenModel.getSalt());
             restfulResult.setData(Base64Util.encodeData(token.getToken()));
         }
+        catch (AuthorityException e){
+            restfulResult.setCode(403);
+            restfulResult.setMessage(e.getMessage());
+            log.error(e.getMessage() + "token:" + requestPermission.getToken());
+        }
         catch (Exception e){
             restfulResult.setCode(500);
-            if (e.getMessage().contains("SQLIntegrityConstraintViolationException")){
-                restfulResult.setMessage("该表达式已有对应权限，添加失败！");
+            if (e.getMessage().contains("could not execute statement; SQL [n/a];")){
+                restfulResult.setMessage("该表达式或权限名已有对应权限，添加失败！");
             }
             else{
-                restfulResult.setMessage("Add permission Failed！");
+                restfulResult.setMessage("服务器出现错误");
             }
-            log.info("添加失败！", e);
         }
         return restfulResult;
     }
@@ -129,13 +136,12 @@ public class PermissionController {
     public RestfulResult deletePermission(@RequestBody PermissionVO requestPermission) {
         RestfulResult restfulResult = new RestfulResult();
         try {
-            permissionService.robPermission(requestPermission.getId());
-            permissionService.deleteById(requestPermission.getId());
+            permissionService.deletePermission(requestPermission.getId());
         }
         catch (Exception e){
             restfulResult.setCode(500);
-            restfulResult.setMessage("Delete permission Failed！");
-            log.info("删除失败！", e);
+            restfulResult.setMessage(e.getMessage());
+            log.error("删除失败！" + e.getMessage());
         }
         return restfulResult;
     }
@@ -155,8 +161,13 @@ public class PermissionController {
         }
         catch (Exception e){
             restfulResult.setCode(500);
-            restfulResult.setMessage("Edit permission Failed！");
-            log.info("编辑失败！", e);
+            if (e.getMessage().contains("could not execute statement; SQL [n/a];")){
+                restfulResult.setMessage("该表达式或权限名已有对应权限，添加失败！");
+            }
+            else{
+                restfulResult.setMessage("服务器出现错误");
+            }
+            log.error(e.getMessage());
         }
         return restfulResult;
     }

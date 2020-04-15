@@ -1,10 +1,12 @@
 package cn.edu.zjnu.acm.service;
 
+import cn.edu.zjnu.acm.common.exception.CommonException;
 import cn.edu.zjnu.acm.entity.Permission;
 import cn.edu.zjnu.acm.repo.user.PermissionRepository;
 import cn.edu.zjnu.acm.repo.user.RolePermissionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service("permissionService")
 public class PermissionService{
@@ -17,7 +19,17 @@ public class PermissionService{
     }
 
     public long getIdByNameAndUrl(String pName, String pUrl) {
-        return permissionRepository.findIdByNameAndUrl(pName,pUrl);
+        return permissionRepository.findPermissionByNameAndUrl(pName,pUrl).getId();
+    }
+
+
+    @Transactional
+    public void deletePermission(long permissionId){
+        if (!permissionRepository.existsById(permissionId)){
+            throw new CommonException("权限不存在,id:" + permissionId);
+        }
+        robPermission(permissionId);
+        deleteById(permissionId);
     }
 
     public void robPermission(long permissionId) {
@@ -32,8 +44,9 @@ public class PermissionService{
     public void deleteById(long permissionId){
         permissionRepository.deleteById(permissionId);
     }
+
     public void updateByPrimaryKey(Permission permission){
-        permissionRepository.updateById(permission.getName(), permission.getUrl(), permission.getType());
+        permissionRepository.save(permission);
     }
 
     public Permission findByPermissionId(long permissionId){

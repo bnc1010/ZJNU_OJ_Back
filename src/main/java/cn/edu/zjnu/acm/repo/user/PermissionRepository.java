@@ -11,17 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 public interface PermissionRepository extends JpaRepository<Permission, Long> {
 
     @Transactional
-    @Modifying
-    @Query(value = "select id from permission where name=:name and url=:url"
+    @Query(value = "select * from permission where permission.name=:pname and url=:url"
             , nativeQuery = true)
-    long findIdByNameAndUrl(@Param("name") String name,
+    Permission findPermissionByNameAndUrl(@Param("pname") String pname,
                             @Param("url") String url);
 
-    @Transactional
-    @Modifying
-    @Query(value = "update permission set name=:name, url=:url, type=:type"
-            , nativeQuery = true)
-    void updateById(@Param("name") String name,
-                    @Param("url") String url,
-                    @Param("type") String type);
 }

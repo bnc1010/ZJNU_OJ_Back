@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class AuthorityManagerImpl implements AuthorityManager {
@@ -32,19 +33,25 @@ public class AuthorityManagerImpl implements AuthorityManager {
      **/
     @Override
     public boolean checkAuthority(String permissionCode, String target) {
-//        System.out.println(authorityCode);
         String [] permissionCodes = permissionCode.split("&");
-        for (String pc : permissionCodes){
-            if (pc.equals("au:")){
-                continue;
-            }
-            Permission permission = permissionRepository.getOne(Long.parseLong(pc.substring(1)));
-            if (permission == null)return false;
-            if (permission.getUrl() != null){
-                if(target.matches(permission.getUrl())){
-                    return true;
+        try{
+            for (String pc : permissionCodes){
+                if (pc.equals("au:")){
+                    continue;
+                }
+                Optional<Permission> optional = permissionRepository.findById(Long.parseLong(pc.substring(1)));
+                if (optional.isPresent() && optional != null){
+                    Permission permission = optional.get();
+                    if (permission.getUrl() != null){
+                        if(target.matches(permission.getUrl())){
+                            return true;
+                        }
+                    }
                 }
             }
+        }
+        catch (Exception e){
+            e.printStackTrace();
         }
         return false;
     }
@@ -63,9 +70,12 @@ public class AuthorityManagerImpl implements AuthorityManager {
         for (long roleId : roles){
             List<Long> permissionIds = rolePermissionRepository.findPermissionIdByRoleId(roleId);
             for (long permissionId : permissionIds){
-                Permission permission = permissionRepository.getOne(permissionId);
-                if (!mp.containsKey(permission.getType())){
-                    mp.put(permission.getType() + permission.getId(), true);
+                Optional<Permission> optional = permissionRepository.findById(permissionId);
+                if (optional != null && optional.isPresent()){
+                    Permission permission = optional.get();
+                    if (!mp.containsKey(permission.getType() + permission.getId())){
+                        mp.put(permission.getType() + permission.getId(), true);
+                    }
                 }
             }
         }
@@ -78,9 +88,12 @@ public class AuthorityManagerImpl implements AuthorityManager {
 
         authorityCode = new StringBuilder("ru:");
         for (long roleId : roles){
-            Role _role = roleRepository.getOne(roleId);
-            authorityCode.append("&");
-            authorityCode.append(_role.getType()).append(_role.getId());
+            Optional<Role> optional = roleRepository.findById(roleId);
+            if (optional != null && optional.isPresent()){
+                Role _role = optional.get();
+                authorityCode.append("&");
+                authorityCode.append(_role.getType()).append(_role.getId());
+            }
         }
         ret[1] = authorityCode.toString();
         return ret;

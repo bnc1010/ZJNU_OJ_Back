@@ -2,11 +2,15 @@ package cn.edu.zjnu.acm.service;
 
 import cn.edu.zjnu.acm.common.exception.AuthorityException;
 import cn.edu.zjnu.acm.common.utils.StringUtils;
+import cn.edu.zjnu.acm.entity.Role;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.UserProfile;
+import cn.edu.zjnu.acm.entity.UserRole;
 import cn.edu.zjnu.acm.repo.user.TeacherRepository;
 import cn.edu.zjnu.acm.repo.user.UserProfileRepository;
 import cn.edu.zjnu.acm.repo.user.UserRepository;
+import cn.edu.zjnu.acm.repo.user.UserRoleRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -18,14 +22,20 @@ import java.util.List;
 
 @Service
 public class UserService {
+
+    @Autowired
+    RoleService roleService;
+
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final TeacherRepository teacherRepository;
+    private final UserRoleRepository userRoleRepository;
 
-    public UserService(UserRepository userRepository, UserProfileRepository userProfileRepository, TeacherRepository teacherRepository) {
+    public UserService(UserRepository userRepository, UserProfileRepository userProfileRepository, TeacherRepository teacherRepository, UserRoleRepository userRoleRepository) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.teacherRepository = teacherRepository;
+        this.userRoleRepository = userRoleRepository;
     }
 
     public Page<User> searchUser(int page, int size, String search) {
@@ -40,6 +50,25 @@ public class UserService {
         return userRepository.findByUsername(username).orElse(null);
     }
 
+    public void grantRoles(long userId, List<Long> roleIds){
+        for (long roleId : roleIds){
+            UserRole userRole = new UserRole();
+            User user = new User();
+            user.setId(userId);
+            userRole.setUser(user);
+            Role role = new Role();
+            role.setId(roleId);
+            userRole.setRole(role);
+            try{
+                userRoleRepository.save(userRole);
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+
+    }
+
     @Transactional
     public User registerUser(User u) {
         if (userRepository.findByUsername(u.getUsername()).isPresent())
@@ -51,6 +80,7 @@ public class UserService {
         u = userRepository.save(u);
         if (u == null)
             throw new AuthorityException("注册失败");
+        grantRoles(u.getId(), roleService.getCommonRoleId());
         userProfile.setUser(u);
         userProfileRepository.save(userProfile);
         return u;
@@ -95,5 +125,19 @@ public class UserService {
         if (!teacherRepository.existsByUser(user))
             return -1;
         return teacherRepository.findByUser(user).get().getPrivilege();
+    }
+
+
+    /**
+     * update the permission level of one user
+     * @param user
+     */
+    public void updateLevel(User user){
+        userRepository.save(user);
+    }
+
+
+    public void robOneRoleOfUser(long userId, long roleId){
+        userRoleRepository.robOneRoleOfUser(userId, roleId);
     }
 }

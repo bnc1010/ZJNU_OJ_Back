@@ -60,6 +60,7 @@ public class DMZController {
             userVO.setName(user.getName());
             userVO.setUsername(user.getUsername());
             userVO.setToken(Base64Util.encodeData(token.getToken()));
+//            userVO.setToken(token.getToken());
             restfulResult.setData(userVO);
         } catch (Exception e) {
             e.printStackTrace();
@@ -86,7 +87,7 @@ public class DMZController {
             user.setUsername(requestUser.getUsername());
             user.setIntro(requestUser.getIntro());
             int rank = 1000;
-            List<Role> commonRole = roleService.getCommonRole();;
+            List<Role> commonRole = roleService.getCommonRole();
             for (Role role : commonRole) {
                 rank = rank > role.getLevel() ? role.getLevel() : rank;
             }
@@ -105,13 +106,19 @@ public class DMZController {
      * 登出
      *
      */
-    @ApiOperation(value = "用户登出", notes = "参数：uId")
+    @ApiOperation(value = "用户登出", notes = "参数：token")
     @RequestMapping(value = "/logout", method = RequestMethod.POST)
     @ResponseBody
+    @IgnoreSecurity
     public RestfulResult logout(@RequestBody UserVO requestUser) {
         RestfulResult restfulResult = new RestfulResult();
         try {
-            redisTokenManager.deleteToken(requestUser.getId());
+            TokenModel token = redisTokenManager.getToken(Base64Util.decodeData(requestUser.getToken()));
+            boolean hasKey = redisTokenManager.deleteToken(token.getUserId());
+            if (!hasKey){
+                restfulResult.setCode(404);
+                restfulResult.setMessage("该用户未登录");
+            }
         } catch (Exception e) {
             restfulResult.setCode(500);
             restfulResult.setMessage("Logout failed!");
@@ -119,6 +126,4 @@ public class DMZController {
         }
         return restfulResult;
     }
-
-
 }

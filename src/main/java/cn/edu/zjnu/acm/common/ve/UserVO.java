@@ -16,6 +16,8 @@ public class UserVO {
     private String salt;
     private int level;
     private String token;
+    private long [] userIds;
+    private long [] roleIds;
 
 
     @Override

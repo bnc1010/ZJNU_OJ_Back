@@ -18,7 +18,7 @@ public class Permission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column(nullable = false, columnDefinition = "VARCHAR(200) default '/error'")
+    @Column(nullable = false, unique = true, columnDefinition = "VARCHAR(200)")
     @NotEmpty
     private String url;
 

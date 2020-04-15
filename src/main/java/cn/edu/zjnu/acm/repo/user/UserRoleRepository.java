@@ -12,7 +12,6 @@ import java.util.List;
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
 
     @Transactional
-    @Modifying
     @Query(value = "SELECT role_id FROM user_role WHERE user_id=:user_id"
             , nativeQuery = true)
     List<Long> findRoleIdByUserId(@Param("user_id") Long user_id);
@@ -24,9 +23,13 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
     void robRole(@Param("user_id") Long user_id);
 
     @Transactional
-    @Modifying
     @Query(value = "SELECT user_id FROM user_role WHERE role_id=:role_id"
             , nativeQuery = true)
     List<Long> getUserIdByRoleId(@Param("role_id") Long role_id);
 
+    @Transactional
+    @Modifying
+    @Query(value = "delete from user_role where user_id=:user_id and role_id=:role_id"
+            , nativeQuery = true)
+    void robOneRoleOfUser(@Param("user_id") Long user_id, @Param("role_id") Long role_id);
 }

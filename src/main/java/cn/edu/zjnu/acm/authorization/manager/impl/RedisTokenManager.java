@@ -89,9 +89,13 @@ public class RedisTokenManager implements TokenManager {
     }
 
     @Override
-    public void deleteToken(long userId) {
+    public boolean deleteToken(long userId) {
         if (redis.hasKey(userId)) {
             redis.delete(userId);
+            return true;
+        }
+        else{
+            return false;
         }
     }
 

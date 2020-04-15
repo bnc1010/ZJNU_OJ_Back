@@ -32,7 +32,7 @@ public interface TokenManager {
      * 清除token
      * @param userId 登录用户的id
      */
-    void deleteToken(long userId);
+    boolean deleteToken(long userId);
 
     /**
      * 保证一个用户在一个时间段只有一个可用 Token

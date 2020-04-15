@@ -16,7 +16,7 @@ public class UserOperationService{
     @Autowired
     TokenManager tokenManager;
 
-    public boolean checkOperationToUserByToken(String operatorToken, long target) {
+    public User checkOperationToUserByToken(String operatorToken, long target) {
         if (operatorToken == null){
             throw new AuthorityException("token为空");
         }
@@ -25,6 +25,10 @@ public class UserOperationService{
 
         if (tokenModel == null){
             throw new AuthorityException("token无效");
+        }
+
+        if (target == -1){
+            return null;
         }
 
         User operator = userService.getUserById(tokenModel.getUserId());
@@ -42,7 +46,7 @@ public class UserOperationService{
             throw new AuthorityException("权限不足，无法完成该操作");
         }
 
-        return true;
+        return operator;
     }
 
     public boolean checkTokenNotEmpty(String token) {

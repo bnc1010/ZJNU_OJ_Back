@@ -57,10 +57,17 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         }
         // 从 request header 中获取当前 token
         String authentication = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(authentication));
+        TokenModel tokenModel;
+        try{
+            tokenModel = tokenManager.getToken(Base64Util.decodeData(authentication));
+        }
+        catch (Exception e){
+            throw new TokenException("this token is invalid");
+        }
+
         // 检查有效性(检查是否登录)
         if (!tokenManager.checkToken(tokenModel)) {
-            String message = "token " + Base64Util.decodeData(authentication) + " is invalid！！！";
+            String message = "token " + authentication + " is invalid！！！";
             log.info(message);
             throw new TokenException(message);
         }

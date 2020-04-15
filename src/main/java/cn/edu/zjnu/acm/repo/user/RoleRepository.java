@@ -12,7 +12,13 @@ import java.util.List;
 public interface RoleRepository extends JpaRepository<Role, Long> {
     @Transactional
     @Modifying
-    @Query(value = "select  * from role where type=:type"
+    @Query(value = "select id from role where type=:type"
+            , nativeQuery = true)
+    List<Long> findRoleIdByType(@Param("type") String type);
+
+    @Transactional
+    @Modifying
+    @Query(value = "select * from role where type=:type"
             , nativeQuery = true)
     List<Role> findRoleByType(@Param("type") String type);
 
