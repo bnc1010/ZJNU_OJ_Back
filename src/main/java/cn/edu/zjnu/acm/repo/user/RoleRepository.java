@@ -18,7 +18,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     @Transactional
     @Modifying
-    @Query(value = "delete from role where role_id=:role_id", nativeQuery = true)
+    @Query(value = "delete from role where role.id=:role_id", nativeQuery = true)
     void deleteByRoleId(@Param("role_id") Long roleId);
 
     @Query(value = "select * from role where role.name=:rname", nativeQuery = true)

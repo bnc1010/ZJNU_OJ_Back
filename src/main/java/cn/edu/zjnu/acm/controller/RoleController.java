@@ -7,6 +7,7 @@ import cn.edu.zjnu.acm.common.ve.RoleVO;
 import cn.edu.zjnu.acm.entity.Role;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.service.RoleService;
+import cn.edu.zjnu.acm.service.UserOperationService;
 import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.RestfulResult;
 import io.swagger.annotations.Api;
@@ -36,6 +37,8 @@ public class RoleController{
     private RoleService roleService;
     @Autowired
     private UserService userService;
+    @Autowired
+    private UserOperationService userOperationService;
 
     @ApiOperation(value = "查询列表")
     @RequestMapping(value = "all", method = RequestMethod.POST)
@@ -44,10 +47,11 @@ public class RoleController{
         RestfulResult restfulResult = new RestfulResult();
         try {
             String tk = requestRole.getToken();
+            userOperationService.checkOperationToUserByToken(tk,-1);
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] aus = tokenModel.getRoleCode().split("&");
             List<Role> roleList = new ArrayList<>();
-            if (tokenModel.getRoleCode().contains("a1")){
+            if (tokenModel.getRoleCode().contains("s1")){
                 roleList = roleService.findAll();
             }
             else{
@@ -61,8 +65,8 @@ public class RoleController{
             restfulResult.setData(roleList);
         } catch (Exception e) {
             restfulResult.setCode(500);
-            restfulResult.setMessage("Request role list Failed！");
-            log.info("查询列表失败！", e);
+            restfulResult.setMessage(e.getMessage());
+            log.info("查询列表失败！");
         }
         return restfulResult;
     }
@@ -128,16 +132,16 @@ public class RoleController{
     }
 
 
-    @ApiOperation(value = "给角色赋权限", notes = "参数：rId,权限码数组,token")
+    @ApiOperation(value = "给角色赋权限", notes = "参数：id,权限码数组pids,token")
     @RequestMapping(value = "grant", method = RequestMethod.POST)
     @ResponseBody
     public RestfulResult grantPrivilege(@RequestBody RoleVO requestRole) {
         RestfulResult restfulResult = new RestfulResult();
         try {
             String tk = requestRole.getToken();
+            userOperationService.checkOperationToUserByToken(tk,-1);
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] aus = tokenModel.getPermissionCode().split("&");
-
             List<Long> pIds = new ArrayList<>();
             for (long rs:requestRole.getPIds()){
                 boolean ff = false;
@@ -161,13 +165,13 @@ public class RoleController{
         }
         catch (Exception e){
             restfulResult.setCode(500);
-            restfulResult.setMessage("Grant role Failed！");
-            log.info("赋权失败！", e);
+            restfulResult.setMessage(e.getMessage() == null ? "未知错误" : e.getMessage());
+            log.info("赋权失败！");
         }
         return restfulResult;
     }
 
-    @ApiOperation(value = "给角色去权限", notes = "参数：roleId,permissionId")
+    @ApiOperation(value = "给角色去权限", notes = "参数：id,pids")
     @RequestMapping(value = "/drop", method = RequestMethod.POST)
     @ResponseBody
     public RestfulResult drop(@RequestBody RoleVO requestRole) {
@@ -191,8 +195,8 @@ public class RoleController{
         }
         catch (Exception e){
             restfulResult.setCode(500);
-            restfulResult.setMessage("drop permission of role Failed！");
-            log.info("去权限失败！", e);
+            restfulResult.setMessage(e.getMessage() == null ? "去权限失败！" : e.getMessage());
+            log.info("去权限失败！ 参数：" + requestRole);
         }
         return restfulResult;
     }

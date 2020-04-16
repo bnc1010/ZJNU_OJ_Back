@@ -47,11 +47,4 @@ public class UserOperationService{
 
         return targetUser;
     }
-
-    public boolean checkTokenNotEmpty(String token) {
-        if (token == null){
-            throw new AuthorityException("token为空");
-        }
-        return true;
-    }
 }

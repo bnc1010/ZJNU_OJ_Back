@@ -48,7 +48,7 @@ public class PermissionController {
         RestfulResult restfulResult = new RestfulResult();
         try {
             String tk = requestPermission.getToken();
-            userOperationService.checkTokenNotEmpty(requestPermission.getToken());
+            userOperationService.checkOperationToUserByToken(requestPermission.getToken(),-1);
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] pus = tokenModel.getPermissionCode().split("&");
             List<Permission> permissionsList = new ArrayList<>();
@@ -75,7 +75,7 @@ public class PermissionController {
         RestfulResult restfulResult = new RestfulResult();
         try {
             String tk = requestRole.getToken();
-            userOperationService.checkTokenNotEmpty(requestRole.getToken());
+            userOperationService.checkOperationToUserByToken(tk,-1);
             tokenManager.getToken(Base64Util.decodeData(tk));
             List permissions = roleService.getPermissionIdByRoleId(requestRole.getId());
             restfulResult.setData(permissions);
