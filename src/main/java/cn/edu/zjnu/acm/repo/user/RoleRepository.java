@@ -10,21 +10,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface RoleRepository extends JpaRepository<Role, Long> {
-    @Transactional
-    @Modifying
-    @Query(value = "select id from role where type=:type"
-            , nativeQuery = true)
-    List<Long> findRoleIdByType(@Param("type") String type);
+    @Query(value = "select id from role where role.type=:rtype", nativeQuery = true)
+    List<Long> findRoleIdByType(@Param("rtype") String type);
+
+    @Query(value = "select * from role where role.type=:rtype", nativeQuery = true)
+    List<Role> findRoleByType(@Param("rtype") String type);
 
     @Transactional
     @Modifying
-    @Query(value = "select * from role where type=:type"
-            , nativeQuery = true)
-    List<Role> findRoleByType(@Param("type") String type);
-
-    @Transactional
-    @Modifying
-    @Query(value = "delete from role_id where role_id=:role_id"
-            , nativeQuery = true)
+    @Query(value = "delete from role where role_id=:role_id", nativeQuery = true)
     void deleteByRoleId(@Param("role_id") Long roleId);
+
+    @Query(value = "select * from role where role.name=:rname", nativeQuery = true)
+    Role findRoleByName(@Param("rname") String rname);
 }

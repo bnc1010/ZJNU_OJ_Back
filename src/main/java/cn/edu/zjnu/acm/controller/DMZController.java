@@ -86,12 +86,7 @@ public class DMZController {
             user.setPassword(requestUser.getPassword());
             user.setUsername(requestUser.getUsername());
             user.setIntro(requestUser.getIntro());
-            int rank = 1000;
-            List<Role> commonRole = roleService.getCommonRole();
-            for (Role role : commonRole) {
-                rank = rank > role.getLevel() ? role.getLevel() : rank;
-            }
-            user.setLevel(rank);
+
             userService.registerUser(user);
         }
         catch (Exception e){

@@ -1,16 +1,17 @@
 package cn.edu.zjnu.acm.service;
 
-import cn.edu.zjnu.acm.entity.Permission;
-import cn.edu.zjnu.acm.entity.Role;
-import cn.edu.zjnu.acm.entity.RolePermission;
+import cn.edu.zjnu.acm.common.exception.CommonException;
+import cn.edu.zjnu.acm.entity.*;
 import cn.edu.zjnu.acm.repo.user.RolePermissionRepository;
 import cn.edu.zjnu.acm.repo.user.RoleRepository;
+import cn.edu.zjnu.acm.repo.user.UserRepository;
 import cn.edu.zjnu.acm.repo.user.UserRoleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service("roleService")
@@ -19,11 +20,13 @@ public class RoleService {
     private final RoleRepository roleRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final UserRoleRepository userRoleRepository;
+    private final UserRepository userRepository;
 
-    public RoleService(RoleRepository roleRepository, RolePermissionRepository rolePermissionRepository, UserRoleRepository userRoleRepository){
+    public RoleService(RoleRepository roleRepository, RolePermissionRepository rolePermissionRepository, UserRoleRepository userRoleRepository,UserRepository userRepository){
         this.roleRepository = roleRepository;
         this.rolePermissionRepository = rolePermissionRepository;
         this.userRoleRepository = userRoleRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -71,8 +74,23 @@ public class RoleService {
         return roleRepository.findById(roleId).get();
     }
 
+    @Transactional
     public void insert(Role role){
-        roleRepository.save(role);
+        System.out.println(role);
+        Role dbRole = roleRepository.save(role);
+        if (dbRole == null){
+            throw new CommonException("角色插入失败");
+        }
+        if (role.getType().equals("c")){
+            List<User> users = userRepository.findAll();
+            for (User u : users){
+                userRoleRepository.save(new UserRole(u, dbRole));
+                if (u.getLevel() > dbRole.getLevel()){
+                    u.setLevel(dbRole.getLevel());
+                    userRepository.save(u);
+                }
+            }
+        }
     }
 
     public void deleteByRoleId(long roleId){

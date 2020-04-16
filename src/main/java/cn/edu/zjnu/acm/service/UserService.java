@@ -1,6 +1,7 @@
 package cn.edu.zjnu.acm.service;
 
 import cn.edu.zjnu.acm.common.exception.AuthorityException;
+import cn.edu.zjnu.acm.common.exception.CommonException;
 import cn.edu.zjnu.acm.common.utils.StringUtils;
 import cn.edu.zjnu.acm.entity.Role;
 import cn.edu.zjnu.acm.entity.User;
@@ -73,13 +74,19 @@ public class UserService {
     public User registerUser(User u) {
         if (userRepository.findByUsername(u.getUsername()).isPresent())
             throw new AuthorityException("该用户名已存在");
+        int level = 1000;
+        List<Role> commonRole = roleService.getCommonRole();
+        for (Role role : commonRole) {
+            level = level > role.getLevel() ? role.getLevel() : level;
+        }
+        u.setLevel(level);
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         u.setPassword(encoder.encode(u.getPassword()));
         UserProfile userProfile = new UserProfile();
         u.setSalt(StringUtils.randomStringFromAlphaAndDigital(4));
         u = userRepository.save(u);
         if (u == null)
-            throw new AuthorityException("注册失败");
+            throw new CommonException("注册失败");
         grantRoles(u.getId(), roleService.getCommonRoleId());
         userProfile.setUser(u);
         userProfileRepository.save(userProfile);
@@ -93,7 +100,10 @@ public class UserService {
     }
 
     public void updateUserInfo(User user) {
-        userRepository.updateUser(user.getId(), user.getName(), user.getPassword(), user.getEmail(), user.getIntro());
+        int st = userRepository.updateUser(user.getId(), user.getName(), user.getPassword(), user.getEmail(), user.getIntro());
+        if (st == 0){
+            throw new CommonException("更新失败");
+        }
     }
 
     public boolean checkPassword(String password, String correct) {

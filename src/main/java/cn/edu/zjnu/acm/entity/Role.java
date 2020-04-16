@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 
@@ -36,7 +37,7 @@ public class Role {
     private String type;
 
     @Column(nullable = false, columnDefinition = "INTEGER default '1000'")
-    @NotEmpty
+    @NotNull
     private int level;
 
     @Override

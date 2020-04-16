@@ -1,6 +1,5 @@
 package cn.edu.zjnu.acm.service;
 
-
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.exception.AuthorityException;
@@ -46,7 +45,7 @@ public class UserOperationService{
             throw new AuthorityException("权限不足，无法完成该操作");
         }
 
-        return operator;
+        return targetUser;
     }
 
     public boolean checkTokenNotEmpty(String token) {

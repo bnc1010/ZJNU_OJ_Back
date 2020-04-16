@@ -74,10 +74,12 @@ public class RoleController{
     public RestfulResult addRole(@RequestBody RoleVO requestRole) {
         RestfulResult restfulResult = new RestfulResult();
         try {
+            System.out.println(requestRole);
             Role role = new Role();
             role.setName(requestRole.getName());
             role.setType(requestRole.getType());
             role.setLevel(requestRole.getLevel());
+            System.out.println(role.toString());
             roleService.insert(role);
         }
         catch (Exception e){

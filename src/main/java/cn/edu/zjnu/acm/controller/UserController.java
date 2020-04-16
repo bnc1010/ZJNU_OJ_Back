@@ -108,7 +108,7 @@ public class UserController{
         } catch (Exception e) {
             restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage());
-            log.info("查询指定的User失败！参数信息：id = " + requestUser.getId(), e);
+            log.info("查询指定的User失败！参数信息：id = " + requestUser.getId());
         }
         return restfulResult;
     }
@@ -133,7 +133,7 @@ public class UserController{
         } catch (Exception e) {
             restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage());
-            log.info("更新失败！参数信息：id = " + requestUser.getId() + ",User = " + requestUser.toString(), e);
+            log.info("更新失败！参数信息：id = " + requestUser.getId() + ",User = " + requestUser.toString());
         }
         return restfulResult;
     }
@@ -158,7 +158,7 @@ public class UserController{
         } catch (Exception e) {
             restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage());
-            log.info("删除失败！参数信息：id = ", e);
+            log.info("删除失败！参数信息：" + requestUser.toString());
         }
         return restfulResult;
     }
@@ -189,8 +189,8 @@ public class UserController{
                 restfulResult.setMessage("操作对象不存在!");
                 return restfulResult;
             }
-
-            if (tokenModel.getRoleCode().contains("r1")){//系统管理员情况
+            System.out.println(tokenModel.getToken());
+            if (tokenModel.getRoleCode().contains("s1")){//系统管理员情况
                 for (Long rs:requestUser.getRoleIds()){
                     Role role = roleService.findById(rs);
                     if (role != null){
