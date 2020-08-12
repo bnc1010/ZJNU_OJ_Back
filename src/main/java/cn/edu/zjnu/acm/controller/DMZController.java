@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Api(description = "开放区", tags = "DMZController")
@@ -60,10 +61,9 @@ public class DMZController {
             userVO.setName(user.getName());
             userVO.setUsername(user.getUsername());
             userVO.setToken(Base64Util.encodeData(token.getToken()));
-//            userVO.setToken(token.getToken());
             restfulResult.setData(userVO);
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
             restfulResult.setCode(500);
             restfulResult.setMessage(e.getMessage());
             log.info("用户登录失败！参数信息：" + requestUser.toString());
@@ -104,7 +104,6 @@ public class DMZController {
     @ApiOperation(value = "用户登出", notes = "参数：token")
     @RequestMapping(value = "/logout", method = RequestMethod.POST)
     @ResponseBody
-    @IgnoreSecurity
     public RestfulResult logout(@RequestBody UserVO requestUser) {
         RestfulResult restfulResult = new RestfulResult();
         try {
@@ -114,6 +113,24 @@ public class DMZController {
                 restfulResult.setCode(404);
                 restfulResult.setMessage("该用户未登录");
             }
+        } catch (Exception e) {
+            restfulResult.setCode(500);
+            restfulResult.setMessage("Logout failed!");
+            log.info("遇到未知错误，退出失败！用户参数：" + requestUser.toString());
+        }
+        return restfulResult;
+    }
+
+
+    @ApiOperation(value = "用户身份", notes = "参数：token")
+    @RequestMapping(value = "/userinfo", method = RequestMethod.POST)
+    @ResponseBody
+    public RestfulResult userInfo(@RequestBody UserVO requestUser){
+        RestfulResult restfulResult = new RestfulResult();
+        try {
+            TokenModel token = redisTokenManager.getToken(Base64Util.decodeData(requestUser.getToken()));
+            List roles = authorityManager.getRoleByToken(token.getRoleCode());
+            restfulResult.setData(roles);
         } catch (Exception e) {
             restfulResult.setCode(500);
             restfulResult.setMessage("Logout failed!");

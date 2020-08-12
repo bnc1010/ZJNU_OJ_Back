@@ -190,7 +190,7 @@ public class UserController{
                 return restfulResult;
             }
             System.out.println(tokenModel.getToken());
-            if (tokenModel.getRoleCode().contains("s1")){//系统管理员情况
+            if (tokenModel.getRoleCode().contains("r1")){//系统管理员情况
                 for (Long rs:requestUser.getRoleIds()){
                     Role role = roleService.findById(rs);
                     if (role != null){

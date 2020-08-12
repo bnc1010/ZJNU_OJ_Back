@@ -1,8 +1,11 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.config.Config;
 import cn.edu.zjnu.acm.service.JudgeService;
 import cn.edu.zjnu.acm.service.SolutionService;
+import cn.edu.zjnu.acm.util.RestfulResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,8 +32,9 @@ public class MainController {
         return new ModelAndView("donate");
     }
 
-    @GetMapping("/notice")
-    public String getNotice() {
-        return config.getNotice();
+    @IgnoreSecurity
+    @GetMapping("/api/notice")
+    public RestfulResult getNotice() {
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", config.getNotice());
     }
 }

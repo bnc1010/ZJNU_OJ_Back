@@ -51,7 +51,7 @@ public class RoleController{
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] aus = tokenModel.getRoleCode().split("&");
             List<Role> roleList = new ArrayList<>();
-            if (tokenModel.getRoleCode().contains("s1")){
+            if (tokenModel.getRoleCode().contains("r1")){//root 用户将可见所有的角色
                 roleList = roleService.findAll();
             }
             else{
@@ -61,7 +61,6 @@ public class RoleController{
                     roleList.add(role);
                 }
             }
-
             restfulResult.setData(roleList);
         } catch (Exception e) {
             restfulResult.setCode(500);
@@ -136,6 +135,7 @@ public class RoleController{
     @RequestMapping(value = "grant", method = RequestMethod.POST)
     @ResponseBody
     public RestfulResult grantPrivilege(@RequestBody RoleVO requestRole) {
+        System.out.print(requestRole);
         RestfulResult restfulResult = new RestfulResult();
         try {
             String tk = requestRole.getToken();
@@ -164,6 +164,7 @@ public class RoleController{
             roleService.grantPrivileges(requestRole.getId(),pIds);
         }
         catch (Exception e){
+            e.printStackTrace();
             restfulResult.setCode(500);
             restfulResult.setMessage(e.getMessage() == null ? "未知错误" : e.getMessage());
             log.info("赋权失败！");

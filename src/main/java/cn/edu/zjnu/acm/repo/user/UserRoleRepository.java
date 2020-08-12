@@ -18,9 +18,9 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
 
     @Transactional
     @Modifying
-    @Query(value = "delete from user_role where user_id=:user_id"
+    @Query(value = "delete from user_role where role_id=:role_id"
             , nativeQuery = true)
-    void robRole(@Param("user_id") Long user_id);
+    void robRole(@Param("role_id") Long role_id);
 
     @Transactional
     @Query(value = "SELECT user_id FROM user_role WHERE role_id=:role_id"

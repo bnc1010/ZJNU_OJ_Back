@@ -4,13 +4,12 @@ import cn.edu.zjnu.acm.authorization.manager.AuthorityManager;
 import cn.edu.zjnu.acm.entity.Permission;
 import cn.edu.zjnu.acm.entity.Role;
 import cn.edu.zjnu.acm.repo.user.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
+@Slf4j
 @Service
 public class AuthorityManagerImpl implements AuthorityManager {
     private final PermissionRepository permissionRepository;
@@ -97,5 +96,41 @@ public class AuthorityManagerImpl implements AuthorityManager {
         }
         ret[1] = authorityCode.toString();
         return ret;
+    }
+
+    @Override
+    public ArrayList getRoleByToken(String roleCode) {
+        String [] roleCodes = roleCode.split("&");
+        ArrayList res = new ArrayList();
+        try {
+            boolean isRoot=false, isAdmin=false,isCommon=false;
+            for (String rc : roleCodes) {
+                if (rc.equals("ru:")) {
+                    continue;
+                }
+                else if (rc.indexOf('r')!=-1){
+                    isRoot=true;
+                }
+                else if (rc.indexOf('a')!=-1){
+                    isAdmin=true;
+                }
+                else if (rc.indexOf('c')!=-1){
+                    isCommon=true;
+                }
+            }
+            if (isRoot){
+                res.add("root");
+            }
+            if (isAdmin){
+                res.add("admin");
+            }
+            if (isCommon){
+                res.add("common");
+            }
+        }
+        catch (Exception e){
+            log.info("获取身份失败,参数：" + roleCode);
+        }
+        return res;
     }
 }

@@ -1,5 +1,7 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Analysis;
 import cn.edu.zjnu.acm.entity.oj.AnalysisComment;
@@ -95,6 +97,7 @@ public class ProblemController {
         return problem;
     }
 
+    @IgnoreSecurity
     @GetMapping("")
     public RestfulResult showProblemList(@RequestParam(value = "page", defaultValue = "0") int page,
                                          @RequestParam(value = "search", defaultValue = "") String search) {
@@ -122,7 +125,7 @@ public class ProblemController {
             p.setSampleInput(null);
             p.setSampleOutput(null);
         }
-        return new RestfulResult(200, "success", problemPage);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problemPage);
     }
 
     @GetMapping("/{id:[0-9]+}")
@@ -130,7 +133,7 @@ public class ProblemController {
         Problem problem = problemService.getActiveProblemById(id);
         if (problem == null)
             throw new NotFoundException();
-        return new RestfulResult(200, "success", problem);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problem);
     }
 
     @GetMapping("/name/{id:[0-9]+}")
@@ -167,21 +170,22 @@ public class ProblemController {
         try {
 //            return restService.submitCode(solution) == null ? "judge failed" : "success";
             judgeService.submitCode(solution);
-            return new Result(200, "success", null , null);
+            return new Result(StatusCode.HTTP_SUCCESS, "success", null , null);
         } catch (Exception e) {
             return new Result(500, "Internal error", null , null);
         }
     }
 
+    @IgnoreSecurity
     @GetMapping("/tags")
     public RestfulResult showTags() {
-        return new RestfulResult(200, "success", problemService.getAllTags());
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problemService.getAllTags());
     }
 
     @GetMapping("/is/accepted/{pid:[0-9]+}")
     public RestfulResult checkUserHasAc(@SessionAttribute User currentUser, @PathVariable Long pid) {
         Problem problem = checkProblemExist(pid);
-        return new RestfulResult(200,
+        return new RestfulResult(StatusCode.HTTP_SUCCESS,
                 "success",
                 problemService.isUserAcProblem(currentUser, problem));
     }
@@ -197,7 +201,7 @@ public class ProblemController {
         }
         List<Analysis> analyses = problemService.getAnalysisByProblem(problem);
         analyses.forEach(a -> a.getUser().hideInfo());
-        return new RestfulResult(200, "success", analyses);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", analyses);
     }
 
     @PostMapping("/analysis/post/{pid:[0-9]+}")
@@ -215,7 +219,7 @@ public class ProblemController {
         analysis.setPostTime(Instant.now());
         analysis.setProblem(problem);
         problemService.postAnalysis(analysis);
-        return new RestfulResult(200, "success", null);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", null);
     }
 
     @GetMapping("/analysis/edit/{aid:[0-9]+}")
@@ -232,7 +236,7 @@ public class ProblemController {
         analysis.getUser().hideInfo();
         analysis.setProblem(null);
         analysis.setComment(null);
-        return new RestfulResult(200, "success", analysis);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", analysis);
     }
 
     @PostMapping("/analysis/edit/{aid:[0-9]+}")
@@ -250,7 +254,7 @@ public class ProblemController {
         }
         ana.setText(analysis.getText());
         problemService.postAnalysis(ana);
-        return new RestfulResult(200, "success", null);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", null);
     }
 
     @PostMapping("/analysis/post/comment/{aid:[0-9]+}")
@@ -272,7 +276,7 @@ public class ProblemController {
         }
         AnalysisComment father = problemService.getFatherComment(commentPost.getReplyId());
         problemService.postAnalysisComment(new AnalysisComment(currentUser, commentPost.replyText, father, analysis));
-        return new RestfulResult(200, "success", null);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", null);
     }
 
     public static class SubmitCodeObject {

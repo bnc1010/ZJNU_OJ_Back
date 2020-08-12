@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service("permissionService")
 public class PermissionService{
     private final PermissionRepository permissionRepository;
@@ -50,6 +52,13 @@ public class PermissionService{
     }
 
     public Permission findByPermissionId(long permissionId){
-        return permissionRepository.findById(permissionId).get();
+        Optional<Permission> optional = permissionRepository.findById(permissionId);
+        if (optional != null && optional.isPresent()){
+            return optional.get();
+        }
+        else{
+            return null;
+        }
+
     }
 }
