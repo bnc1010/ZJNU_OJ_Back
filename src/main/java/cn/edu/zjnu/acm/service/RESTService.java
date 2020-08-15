@@ -40,8 +40,10 @@ public class RESTService {
             }
             reader.close();
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
+        log.info("judge server result:" + result);
         return result;
     }
 

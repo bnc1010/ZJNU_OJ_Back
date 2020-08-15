@@ -1,5 +1,8 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.authorization.manager.TokenManager;
+import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.entity.Teacher;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.*;
@@ -87,8 +90,9 @@ public class ContestController {
     private final JudgeService judgeService;
     private final ContestProblemRepository contestProblemRepository;
     private final TeamService teamService;
+    private final TokenManager tokenManager;
 
-    public ContestController(HttpSession session, UserService userService, ProblemService problemService, SolutionService solutionService, ContestService contestService, JudgeService judgeService, ContestProblemRepository contestProblemRepository, TeamService teamService, CommentRepository commentRepository) {
+    public ContestController(HttpSession session, UserService userService, ProblemService problemService, SolutionService solutionService, ContestService contestService, JudgeService judgeService, ContestProblemRepository contestProblemRepository, TeamService teamService, CommentRepository commentRepository, TokenManager tokenManager) {
         this.session = session;
         this.userService = userService;
         this.problemService = problemService;
@@ -97,29 +101,38 @@ public class ContestController {
         this.judgeService = judgeService;
         this.contestProblemRepository = contestProblemRepository;
         this.teamService = teamService;
+        this.tokenManager = tokenManager;
     }
 
     @GetMapping("")
     public Page<Contest> showContests(
             @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
             @RequestParam(value = "search", defaultValue = "") String search) {
-        page = Math.max(0, page);
-        Page<Contest> currentPage = contestService.getContestWithoutTeam(page, PAGE_SIZE, search);
-        for (Contest c : currentPage.getContent()) {
-            c.clearLazyRoles();
-            c.setProblems(null);
-            c.setSolutions(null);
-            c.setContestComments(null);
-            c.setPassword(null);
-            c.setCreator(null);
-            c.setFreezeRank(null);
-            c.setCreateTime(null);
-            if (c.getTeam() != null) {
-                c.getTeam().setCreator(null);
-                c.getTeam().clearLazyRoles();
+        System.out.println("enter");
+        try {
+            page = Math.max(0, page);
+            Page<Contest> currentPage = contestService.getContestWithoutTeam(page, pagesize, search);
+            for (Contest c : currentPage.getContent()) {
+                c.clearLazyRoles();
+                c.setProblems(null);
+                c.setSolutions(null);
+                c.setContestComments(null);
+                c.setPassword(null);
+                c.setCreator(null);
+                c.setFreezeRank(null);
+                c.setCreateTime(null);
+                if (c.getTeam() != null) {
+                    c.getTeam().setCreator(null);
+                    c.getTeam().clearLazyRoles();
+                }
             }
+            return currentPage;
         }
-        return currentPage;
+        catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @GetMapping("/clone/{id:[0-9]+}")
@@ -136,28 +149,28 @@ public class ContestController {
         return new RestfulResult(200, "success", c);
     }
 
-    @GetMapping("/gate/{cid:[0-9]+}")
-    public String contestReady(@PathVariable("cid") Long cid) {
-        User user = (User) session.getAttribute("currentUser");
-        if (user == null)
-            throw new NeedLoginException();
-        Contest contest = contestService.getContestById(cid);
-        if (contest == null)
-            throw new NotFoundException();
-        if (!contest.isStarted())
-            return "未开始 not started";
-        if (userService.getUserPermission(user) == -1) {
-            if (contest.getPrivilege().equals(Contest.TEAM)) {
-                Team team = contest.getTeam();
-                if (teamService.isUserInTeam(user, team)) {
-                    return "success";
-                } else {
-                    return "没有权限";
-                }
-            }
-        }
-        return "success";
-    }
+//    @GetMapping("/gate/{cid:[0-9]+}")
+//    public String contestReady(@PathVariable("cid") Long cid) {
+//        User user = (User) session.getAttribute("currentUser");
+//        if (user == null)
+//            throw new NeedLoginException();
+//        Contest contest = contestService.getContestById(cid);
+//        if (contest == null)
+//            throw new NotFoundException();
+//        if (!contest.isStarted())
+//            return "未开始 not started";
+//        if (userService.getUserPermission(user) == -1) {
+//            if (contest.getPrivilege().equals(Contest.TEAM)) {
+//                Team team = contest.getTeam();
+//                if (teamService.isUserInTeam(user, team)) {
+//                    return "success";
+//                } else {
+//                    return "没有权限";
+//                }
+//            }
+//        }
+//        return "success";
+//    }
 
     private Boolean isContestCreator(Contest contest, User currentUser) {
         if (contest == null) {
@@ -166,16 +179,16 @@ public class ContestController {
         return contest.getCreator().getId() == currentUser.getId();
     }
 
-    @GetMapping("/background/access/{cid:[0-9]+}")
-    public String isAccessContestBackground(@PathVariable("cid") Long cid,
-                                            @SessionAttribute User currentUser) {
-        Contest contest = contestService.getContestById(cid);
-        if (isContestCreator(contest, currentUser) ||
-                userService.getUserPermission(currentUser) == Teacher.ADMIN) {
-            return "success";
-        }
-        return "negative";
-    }
+//    @GetMapping("/background/access/{cid:[0-9]+}")
+//    public String isAccessContestBackground(@PathVariable("cid") Long cid,
+//                                            @SessionAttribute User currentUser) {
+//        Contest contest = contestService.getContestById(cid);
+//        if (isContestCreator(contest, currentUser) ||
+//                userService.getUserPermission(currentUser) == Teacher.ADMIN) {
+//            return "success";
+//        }
+//        return "negative";
+//    }
 
     @GetMapping("/background/{cid:[0-9]+}")
     public Contest getUpdateContestInfo(@PathVariable("cid") Long cid,
@@ -192,28 +205,28 @@ public class ContestController {
         return contest;
     }
 
-    @PostMapping("/background/{cid:[0-9]+}")
-    public String updateContest(@PathVariable("cid") Long cid,
-                                @SessionAttribute User currentUser,
-                                @RequestBody EditContest editContest) {
-        Contest contest = contestService.getContestById(cid);
-        if (!isContestCreator(contest, currentUser) && userService.getUserPermission(currentUser) != Teacher.ADMIN) {
-            throw new ForbiddenException("Permission denied!");
-        }
-        contest.setTitle(editContest.getTitle());
-        contest.setDescription(editContest.getDescription());
-        if (!contest.getPrivilege().equals(Contest.TEAM)) {
-            if (!editContest.getPrivilege().equals(Contest.TEAM)) {
-                contest.setPrivilege(editContest.getPrivilege());
-            }
-        }
-        contest.setStartAndEndTime(editContest.getStartTime(), editContest.getLength());
-        if (contest.getPrivilege().equals(Contest.PRIVATE)) {
-            contest.setPassword(editContest.getPassword());
-        }
-        contestService.saveContest(contest);
-        return "success";
-    }
+//    @PostMapping("/background/{cid:[0-9]+}")
+//    public String updateContest(@PathVariable("cid") Long cid,
+//                                @SessionAttribute User currentUser,
+//                                @RequestBody EditContest editContest) {
+//        Contest contest = contestService.getContestById(cid);
+//        if (!isContestCreator(contest, currentUser) && userService.getUserPermission(currentUser) != Teacher.ADMIN) {
+//            throw new ForbiddenException("Permission denied!");
+//        }
+//        contest.setTitle(editContest.getTitle());
+//        contest.setDescription(editContest.getDescription());
+//        if (!contest.getPrivilege().equals(Contest.TEAM)) {
+//            if (!editContest.getPrivilege().equals(Contest.TEAM)) {
+//                contest.setPrivilege(editContest.getPrivilege());
+//            }
+//        }
+//        contest.setStartAndEndTime(editContest.getStartTime(), editContest.getLength());
+//        if (contest.getPrivilege().equals(Contest.PRIVATE)) {
+//            contest.setPassword(editContest.getPassword());
+//        }
+//        contestService.saveContest(contest);
+//        return "success";
+//    }
 
     @GetMapping("/{cid:[0-9]+}")
     public Contest getContestDetail(@PathVariable("cid") Long cid,
@@ -274,10 +287,12 @@ public class ContestController {
                                          HttpServletRequest request,
                                          @RequestBody ProblemController.SubmitCodeObject submitCodeObject) {
         log.info("Submit:" + Date.from(Instant.now()));
+        String tk = submitCodeObject.getToken();
+        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
         String source = submitCodeObject.getSource();
         boolean share = submitCodeObject.isShare();
         String language = submitCodeObject.getLanguage();
-        String _temp = ProblemController.checkSubmitFrequncy(session, source);
+        String _temp = problemService.checkSubmitFrequency(tokenModel.getUserId(), source);
         if (_temp != null)
             new Result(403, _temp, null , null);
         @NotNull User user;

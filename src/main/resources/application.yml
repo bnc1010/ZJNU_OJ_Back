@@ -61,8 +61,8 @@ logging:
 
 onlinejudge:
   judgerhost:
-    - ${JUDGER_SERVICE}
-  #    - http://localhost:8001/judge
+#    - ${JUDGER_SERVICE}
+      - http://localhost:12345/judge
   #    - http://localhost:8002/judge
   #    - http://localhost:8003/judge
   #    - http://localhost:8004/judge

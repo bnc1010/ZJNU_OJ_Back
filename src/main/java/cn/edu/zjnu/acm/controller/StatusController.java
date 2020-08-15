@@ -1,5 +1,11 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.authorization.manager.TokenManager;
+import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.constant.Constants;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
+import cn.edu.zjnu.acm.common.utils.Base64Util;
+import cn.edu.zjnu.acm.common.ve.TokenVO;
 import cn.edu.zjnu.acm.config.Config;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Problem;
@@ -18,17 +24,6 @@ import javax.servlet.http.HttpSession;
 import java.util.LinkedList;
 import java.util.List;
 
-@Slf4j
-@Controller
-@RequestMapping("/status")
-class StatusViewController {
-    private static final int PAGE_SIZE = 30;
-
-    @GetMapping
-    public String showStatus() {
-        return "problem/status";
-    }
-}
 
 @Slf4j
 @RestController
@@ -41,13 +36,15 @@ public class StatusController {
     private final UserService userService;
     private final ProblemService problemService;
     private final HttpSession session;
+    private final TokenManager tokenManager;
 
-    public StatusController(Config config, SolutionService solutionService, UserService userService, ProblemService problemService, HttpSession session) {
+    public StatusController(Config config, SolutionService solutionService, UserService userService, ProblemService problemService, HttpSession session, TokenManager tokenManager) {
         this.config = config;
         this.solutionService = solutionService;
         this.userService = userService;
         this.problemService = problemService;
         this.session = session;
+        this.tokenManager  = tokenManager;
     }
 
     public static Solution solutionFilter(Solution s) {
@@ -74,6 +71,7 @@ public class StatusController {
 
     @GetMapping("")
     public RestfulResult searchStatus(@RequestParam(value = "page", defaultValue = "0") Integer page,
+                                      @RequestParam(value = "pagesize", defaultValue = "20") Integer pagesize,
                                       @RequestParam(value = "user", defaultValue = "") String username,
                                       @RequestParam(value = "pid", defaultValue = "") Long pid,
                                       @RequestParam(value = "AC", defaultValue = "") String AC) throws Exception {
@@ -88,8 +86,8 @@ public class StatusController {
         User user = userService.getUserByUsername(username);
         Problem problem = problemService.getActiveProblemById(pid);
         Page<Solution> page_return = getAll ?
-                solutionService.getStatus(page, PAGE_SIZE) :
-                solutionService.getStatus(user, problem, AC, page, PAGE_SIZE);
+                solutionService.getStatus(page, pagesize) :
+                solutionService.getStatus(user, problem, AC, page, pagesize);
         page_return.getContent().forEach(s -> {
             try {
                 s.setUser(s.getUser().clone());
@@ -103,16 +101,18 @@ public class StatusController {
     }
 
     @GetMapping("/view/{id:[0-9]+}")
-    public Solution restfulShowSourceCode(@PathVariable(value = "id") Long id) {
-        Solution solution = solutionService.getSolutionById(id);
+    public RestfulResult restfulShowSourceCode(@PathVariable(value = "id") Long id, @RequestParam(value = "token", defaultValue = "") String token) {
+        Solution solution = null;
         try {
+            solution = solutionService.getSolutionById(id);
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
             assert solution != null;
-            User user = (User) session.getAttribute("currentUser");
+            User user = userService.getUserById(tokenModel.getUserId());
             if (user == null) {
                 solution.setInfo(null);
                 solution.setSource("This Source Code Is Not Shared!");
             }
-            if (userService.getUserPermission(user) == -1) {
+            if (userService.getUserPermission(user, tokenModel.getPermissionCode()) == -1 && !solution.getShare()) {
                 if (user.getId() != solution.getUser().getId()) {
                     // This submit not belongs to this user.
                     solution.setSource("This Source Code Is Not Shared!");
@@ -127,22 +127,28 @@ public class StatusController {
             } else {
                 solution.setContest(null);
             }
-            return solutionFilter(solution);
+            return  new RestfulResult(StatusCode.HTTP_SUCCESS, "success", solutionFilter(solution));
         } catch (Exception e) {
+            e.printStackTrace();
             throw new NotFoundException();
         }
     }
 
     @PostMapping("/share/{id:[0-9]+}")
-    public boolean setShare(@PathVariable("id") Long id) {
+    public RestfulResult setShare(@PathVariable("id") Long id, @RequestBody TokenVO tokenVO) {
         try {
-            User user = (User) session.getAttribute("currentUser");
-            if (userService.getUserById(user.getId()) != null) {
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tokenVO.getToken()));
+            if (tokenModel == null){
+                throw new NotFoundException();
+            }
+            User user = userService.getUserById(tokenModel.getUserId());
+            System.out.println(user.toString());
+            if (user != null) {
                 Solution solution = solutionService.getSolutionById(id);
                 if (solution.getUser().getId().equals(user.getId())) {
                     solution.setShare(!solution.getShare());
                     solutionService.updateSolutionShare(solution);
-                    return solution.getShare();
+                    return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", solution.getShare());
                 }
             }
         } catch (Exception ignored) {
@@ -151,11 +157,12 @@ public class StatusController {
     }
 
     @GetMapping("/user/latest/submit/{id:[0-9]+}")
-    public RestfulResult userSubmitLatestHistory(@PathVariable("id") Long pid) {
-        User user = (User) session.getAttribute("currentUser");
-        Problem problem = problemService.getActiveProblemById(pid);
+    public RestfulResult userSubmitLatestHistory(@PathVariable("id") Long pid, @RequestParam(value = "token", defaultValue = "") String token) {
         try {
-            if (userService.getUserById(user.getId()) != null && problem != null) {
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+            Problem problem = problemService.getActiveProblemById(pid);
+            User user = userService.getUserById(tokenModel.getUserId());
+            if (user != null && problem != null) {
                 List<Solution> solutions = solutionService.getProblemSubmitOfUser(user, problem);
                 solutions = solutions.subList(0, Math.min(solutions.size(), 5));
                 solutions.forEach(s -> {

@@ -74,7 +74,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
 
         //检查权限
         if (!authorityManager.checkAuthority(tokenModel.getPermissionCode(), requestUrl.getPath())){
-            String message = tokenModel.getUserId() + "try to enter " + requestUrl.getPath() + "without permission";
+            String message = tokenModel.getUserId() + "try to enter " + requestUrl.getPath() + " without permission";
             log.info(message);
             throw new AuthorityException("无权访问");
         }

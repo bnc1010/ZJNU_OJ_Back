@@ -28,13 +28,15 @@ public class ProblemService {
     private final UserProblemRepository userProblemRepository;
     private final AnalysisRepository analysisRepository;
     private final AnalysisCommentRepository analysisCommentRepository;
+    private final RedisService redisService;
 
-    public ProblemService(ProblemRepository problemRepository, TagRepository tagRepository, UserProblemRepository userProblemRepository, AnalysisCommentRepository analysisCommentRepository, AnalysisRepository analysisRepository) {
+    public ProblemService(ProblemRepository problemRepository, TagRepository tagRepository, UserProblemRepository userProblemRepository, AnalysisCommentRepository analysisCommentRepository, AnalysisRepository analysisRepository,RedisService redisService) {
         this.problemRepository = problemRepository;
         this.tagRepository = tagRepository;
         this.userProblemRepository = userProblemRepository;
         this.analysisCommentRepository = analysisCommentRepository;
         this.analysisRepository = analysisRepository;
+        this.redisService = redisService;
     }
 
     public Page<Problem> getAllActiveProblems(int page, int size) {
@@ -105,8 +107,7 @@ public class ProblemService {
         return problemRepository.findById(id).orElse(null);
     }
 
-    public List<Tag> convertString2Tag(String s) {
-        String[] ts = s.split("[,，]");
+    public List<Tag> convertString2Tag(String [] ts) {
         ArrayList<Tag> tags = new ArrayList<>();
         for (int i = 0; i < ts.length; i++) {
             Tag t = tagRepository.findByName(ts[i]).orElse(null);
@@ -156,5 +157,17 @@ public class ProblemService {
         return isScore ?
                 userProblemRepository.userSolveTagScore(user.getId(), tag.getId()) :
                 userProblemRepository.userSolveTagCount(user.getId(), tag.getId());
+    }
+
+    public String checkSubmitFrequency(long userId, String source) {
+        if (!redisService.isValidToSubmit(userId)) {
+            return "Don't submitted within 10 seconds";
+        } else if (source.length() > 20000) {
+            return "Source code too long";
+        } else if (source.length() < 2) {
+            return "Source code too short";
+        }
+        redisService.insertSubmitTime(userId);
+        return null;
     }
 }

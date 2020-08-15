@@ -1,5 +1,6 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
 import cn.edu.zjnu.acm.config.Config;
 import cn.edu.zjnu.acm.entity.oj.Solution;
 import cn.edu.zjnu.acm.common.exception.NotFoundException;
@@ -25,11 +26,13 @@ public class JudgeController {
         this.solutionService = solutionService;
     }
 
+    @IgnoreSecurity
     @PostMapping("/judge/callback")
     public String judgeCallback(@RequestBody JudgeController.JudgeCallback callback) {
         try {
             log.info(callback.toString());
             Solution solution = solutionService.getSolutionById(callback.getSubmit_id());
+            log.info(solution.toString());
             if (solution == null) {
                 return "no this id";
             }

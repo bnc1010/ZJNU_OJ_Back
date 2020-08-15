@@ -70,26 +70,26 @@ public class ArticleController {
         return article;
     }
 
-    @PostMapping("/post")
-    public ArticleCallback postArticle(@RequestBody @Validated Article article,
-                                       @SessionAttribute(required = false) User currentUser) {
-        if (currentUser == null) {
-            throw new NeedLoginException();
-        }
-        if (userService.getUserPermission(currentUser) < 0)
-            if (currentUser.getUserProfile().getScore() < ojConfig.getLeastScoreToPostBlog()) {
-                return new ArticleCallback("score too low, at least " + ojConfig.getLeastScoreToPostBlog(), "");
-            }
-        try {
-            article.setUser(currentUser);
-            article.setComment(null);
-            article = articleRepository.save(article);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ArticleCallback("unknown error", "");
-        }
-        return new ArticleCallback("success", article.getId().toString());
-    }
+//    @PostMapping("/post")
+//    public ArticleCallback postArticle(@RequestBody @Validated Article article,
+//                                       @SessionAttribute(required = false) User currentUser) {
+//        if (currentUser == null) {
+//            throw new NeedLoginException();
+//        }
+//        if (userService.getUserPermission(currentUser) < 0)
+//            if (currentUser.getUserProfile().getScore() < ojConfig.getLeastScoreToPostBlog()) {
+//                return new ArticleCallback("score too low, at least " + ojConfig.getLeastScoreToPostBlog(), "");
+//            }
+//        try {
+//            article.setUser(currentUser);
+//            article.setComment(null);
+//            article = articleRepository.save(article);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ArticleCallback("unknown error", "");
+//        }
+//        return new ArticleCallback("success", article.getId().toString());
+//    }
 
     @PostMapping("/edit/{aid:[0-9]+}")
     public ArticleCallback editArticle(@RequestBody @Validated Article editArticle,

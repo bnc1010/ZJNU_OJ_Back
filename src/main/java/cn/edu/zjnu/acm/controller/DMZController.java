@@ -85,8 +85,12 @@ public class DMZController {
             user.setName(requestUser.getName());
             user.setPassword(requestUser.getPassword());
             user.setUsername(requestUser.getUsername());
-            user.setIntro(requestUser.getIntro());
-
+            if (requestUser.getIntro() == null){
+                user.setIntro("这人很懒，什么也没留下");
+            }
+            else{
+                user.setIntro(requestUser.getIntro());
+            }
             userService.registerUser(user);
         }
         catch (Exception e){

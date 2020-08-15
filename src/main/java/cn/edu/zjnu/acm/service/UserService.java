@@ -3,10 +3,7 @@ package cn.edu.zjnu.acm.service;
 import cn.edu.zjnu.acm.common.exception.AuthorityException;
 import cn.edu.zjnu.acm.common.exception.CommonException;
 import cn.edu.zjnu.acm.common.utils.StringUtils;
-import cn.edu.zjnu.acm.entity.Role;
-import cn.edu.zjnu.acm.entity.User;
-import cn.edu.zjnu.acm.entity.UserProfile;
-import cn.edu.zjnu.acm.entity.UserRole;
+import cn.edu.zjnu.acm.entity.*;
 import cn.edu.zjnu.acm.repo.user.TeacherRepository;
 import cn.edu.zjnu.acm.repo.user.UserProfileRepository;
 import cn.edu.zjnu.acm.repo.user.UserRepository;
@@ -20,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -131,10 +129,17 @@ public class UserService {
      * @param user
      * @return -1 if normal users, otherwise return teacher privileges.
      */
-    public int getUserPermission(User user) {
-        if (!teacherRepository.existsByUser(user))
-            return -1;
-        return teacherRepository.findByUser(user).get().getPrivilege();
+    public int getUserPermission(User user, String permissionCode) {
+        String [] permissionCodes = permissionCode.split("&");
+        for (String pc : permissionCodes){
+            if (pc.equals("au:")){
+                continue;
+            }
+            if (pc.equals("a5")){
+                return 1;
+            }
+        }
+        return -1;
     }
 
 

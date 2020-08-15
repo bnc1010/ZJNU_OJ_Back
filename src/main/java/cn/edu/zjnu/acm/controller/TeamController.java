@@ -249,33 +249,33 @@ public class TeamController {
         return "success";
     }
 
-    @PostMapping("/create")
-    public String createTeam(@SessionAttribute User currentUser, @Validated @RequestBody Team team) {
-        if (currentUser == null) {
-            throw new NeedLoginException();
-        }
-        if (userService.getUserPermission(currentUser) == -1) {
-            return "permission denied";
-        }
-        try {
-            currentUser = userService.getUserById(currentUser.getId());
-        } catch (NullPointerException e) {
-            return "failed";
-        }
-        if (teamService.isTeamNameExist(team.getName())) {
-            return "name existed!";
-        }
-        if (teamService.checkUserCreateTeamLimit(20, currentUser)) {
-            return "number limit exceed";
-        }
-        team.setCreator(currentUser);
-        team.setTeammates(new ArrayList<Teammate>());
-        team.setContests(new ArrayList<Contest>());
-        team.setCreateTime(Instant.now());
-        team = teamService.addTeam(team);
-        teamService.addTeammate(currentUser, team, Teammate.MASTER);
-        return "success";
-    }
+//    @PostMapping("/create")
+//    public String createTeam(@SessionAttribute User currentUser, @Validated @RequestBody Team team) {
+//        if (currentUser == null) {
+//            throw new NeedLoginException();
+//        }
+//        if (userService.getUserPermission(currentUser) == -1) {
+//            return "permission denied";
+//        }
+//        try {
+//            currentUser = userService.getUserById(currentUser.getId());
+//        } catch (NullPointerException e) {
+//            return "failed";
+//        }
+//        if (teamService.isTeamNameExist(team.getName())) {
+//            return "name existed!";
+//        }
+//        if (teamService.checkUserCreateTeamLimit(20, currentUser)) {
+//            return "number limit exceed";
+//        }
+//        team.setCreator(currentUser);
+//        team.setTeammates(new ArrayList<Teammate>());
+//        team.setContests(new ArrayList<Contest>());
+//        team.setCreateTime(Instant.now());
+//        team = teamService.addTeam(team);
+//        teamService.addTeammate(currentUser, team, Teammate.MASTER);
+//        return "success";
+//    }
 
     @GetMapping("/leave/{teamid:[0-9]+}")
     public String leaveTeam(@PathVariable("teamid") Long teamId) {

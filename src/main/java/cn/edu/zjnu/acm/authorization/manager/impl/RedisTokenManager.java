@@ -6,6 +6,7 @@ import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.stereotype.Component;
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 通过Redis存储和验证token的实现类
- * @see cn.edu.zjnu.acm.authorization.manager.TokenManager
+ * @see TokenManager
  */
 @Component
 @Slf4j
@@ -28,7 +29,7 @@ public class RedisTokenManager implements TokenManager {
     private final SimpleDateFormat SDF = new SimpleDateFormat("yyyyMMddHHmmss");
 
     @Autowired
-    public void setRedis(RedisTemplate<Long, Object> redis) {
+    public void setRedis(@Qualifier("redisTemplate1") RedisTemplate<Long, Object> redis) {
         this.redis = redis;
         //泛型设置成Long后必须更改对应的序列化方案
         redis.setKeySerializer(new JdkSerializationRedisSerializer());

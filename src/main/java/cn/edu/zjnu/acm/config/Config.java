@@ -10,8 +10,8 @@ import java.util.ArrayList;
 @Configuration
 @ConfigurationProperties(prefix = "onlinejudge")
 public class Config {
-    private Integer leastScoreToSeeOthersCode = 750;
-    private Integer leastScoreToPostBlog = 750;
+    private Integer leastScoreToSeeOthersCode = 0;
+    private Integer leastScoreToPostBlog = 0;
     private ArrayList<String> judgerhost;
     private LanguageConfig c;
     private LanguageConfig cpp;

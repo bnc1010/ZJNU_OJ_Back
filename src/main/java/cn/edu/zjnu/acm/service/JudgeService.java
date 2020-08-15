@@ -82,6 +82,7 @@ public class JudgeService {
         log.info(host);
         log.info(language.toString());
         String jsonString = JSON.toJSONString(submitCode);
+        log.info(jsonString);
         return restService.postJson(jsonString, host);
     }
 
