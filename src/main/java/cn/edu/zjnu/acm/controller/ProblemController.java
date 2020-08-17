@@ -96,17 +96,23 @@ public class ProblemController {
     public RestfulResult showProblem(@PathVariable Long id) {
         Problem problem = problemService.getActiveProblemById(id);
         if (problem == null)
-            throw new NotFoundException();
+            return new RestfulResult(StatusCode.NOT_FOUND, "not found", null);
         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problem);
     }
 
     @GetMapping("/name/{id:[0-9]+}")
-    public String getProblemName(@PathVariable(value = "id") Long id) {
+    public RestfulResult getProblemName(@PathVariable(value = "id") Long id) {
         try {
-            return ((Problem) showProblem(id).getData()).getTitle();
+            Problem problem = (Problem) showProblem(id).getData();
+            if (problem != null)
+                return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problem.getTitle());
+            else
+                return new RestfulResult(StatusCode.NOT_FOUND, "not found", null);
+
         } catch (Exception e) {
-            return null;
+
         }
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
     }
 
     @PostMapping("/submit/{id:[0-9]+}")
@@ -164,7 +170,7 @@ public class ProblemController {
         Problem problem = checkProblemExist(pid);
         TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
         User user = userService.getUserById(tokenModel.getUserId());
-        if (userService.getUserPermission(user, tokenModel.getPermissionCode()) == -1) {
+        if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
             if (!problemService.isUserAcProblem(user, problem)) {
                 throw new ForbiddenException("Access after passing the question");
             }

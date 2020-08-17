@@ -66,6 +66,7 @@ public class ContestService {
                 return fulfillContest(contestRepository.findById(id).get());
             } catch (Exception e) {
                 return null;
+//                e.printStackTrace();
             }
         }
         return contestRepository.findById(id).orElse(null);

@@ -2,7 +2,9 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
+import cn.edu.zjnu.acm.common.ve.TokenVO;
 import cn.edu.zjnu.acm.entity.Teacher;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.*;
@@ -30,51 +32,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-
-@Slf4j
-@Controller
-@RequestMapping("/contest")
-class ContestViewController {
-    @GetMapping
-    public String contestPage() {
-        return "contest/contests";
-    }
-
-    @GetMapping("/problem/{id:[0-9]+}")
-    public String showContest(@PathVariable(value = "id") Long id) {
-        return "contest/contestinfo";
-    }
-
-    @GetMapping("/status/{id:[0-9]+}")
-    public String showContestStatus(@PathVariable(value = "id") Long id) {
-        return "contest/conteststatus";
-    }
-
-    @GetMapping("/ranklist/{id:[0-9]+}")
-    public String showContestRanklist(@PathVariable(value = "id") Long id) {
-        return "contest/contestrank";
-    }
-
-    @GetMapping("/comment/{id:[0-9]+}")
-    public String showContestComment(@PathVariable(value = "id") Long id) {
-        return "contest/contestcomment";
-    }
-
-    @GetMapping("/{id:[0-9]+}")
-    public String contestGate(@PathVariable(value = "id") Long id) {
-        return "contest/contestgate";
-    }
-
-    @GetMapping("/create/{tid:[0-9]+}")
-    public String createContest() {
-        return "contest/create_contest";
-    }
-
-    @GetMapping("/edit/{tid:[0-9]+}")
-    public String editContest() {
-        return "contest/edit_contest";
-    }
-}
 
 @Slf4j
 @RestController
@@ -105,11 +62,10 @@ public class ContestController {
     }
 
     @GetMapping("")
-    public Page<Contest> showContests(
+    public RestfulResult showContests(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
             @RequestParam(value = "search", defaultValue = "") String search) {
-        System.out.println("enter");
         try {
             page = Math.max(0, page);
             Page<Contest> currentPage = contestService.getContestWithoutTeam(page, pagesize, search);
@@ -127,106 +83,137 @@ public class ContestController {
                     c.getTeam().clearLazyRoles();
                 }
             }
-            return currentPage;
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", currentPage);
         }
         catch(Exception e){
-            e.printStackTrace();
+//            e.printStackTrace();
         }
-        return null;
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
     }
 
-    @GetMapping("/clone/{id:[0-9]+}")
-    public RestfulResult cloneContest(@PathVariable Long id) {
-        Contest c = contestService.getContestById(id, true);
-        if (c == null) {
-            return new RestfulResult(404, "no contest found", null);
-        }
-        c.setSolutions(null);
-        c.setContestComments(null);
-        c.setCreator(null);
-        c.setPassword(null);
-        c.setTeam(null);
-        return new RestfulResult(200, "success", c);
-    }
-
-//    @GetMapping("/gate/{cid:[0-9]+}")
-//    public String contestReady(@PathVariable("cid") Long cid) {
-//        User user = (User) session.getAttribute("currentUser");
-//        if (user == null)
-//            throw new NeedLoginException();
-//        Contest contest = contestService.getContestById(cid);
-//        if (contest == null)
-//            throw new NotFoundException();
-//        if (!contest.isStarted())
-//            return "未开始 not started";
-//        if (userService.getUserPermission(user) == -1) {
-//            if (contest.getPrivilege().equals(Contest.TEAM)) {
-//                Team team = contest.getTeam();
-//                if (teamService.isUserInTeam(user, team)) {
-//                    return "success";
-//                } else {
-//                    return "没有权限";
-//                }
-//            }
+//    @GetMapping("/clone/{id:[0-9]+}")
+//    public RestfulResult cloneContest(@PathVariable Long id) {
+//        Contest c = contestService.getContestById(id, true);
+//        if (c == null) {
+//            return new RestfulResult(StatusCode.NOT_FOUND, "no contest found", null);
 //        }
-//        return "success";
+//        c.setSolutions(null);
+//        c.setContestComments(null);
+//        c.setCreator(null);
+//        c.setPassword(null);
+//        c.setTeam(null);
+//        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", c);
 //    }
 
-    private Boolean isContestCreator(Contest contest, User currentUser) {
-        if (contest == null) {
-            throw new NotFoundException();
+    @GetMapping("/gate/{cid:[0-9]+}")
+    public RestfulResult contestReady(@PathVariable("cid") Long cid, @RequestParam("token") String token) {
+        try{
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+            User user = userService.getUserById(tokenModel.getUserId());
+            if (user == null)
+                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
+            Contest contest = contestService.getContestById(cid);
+            if (contest == null)
+                return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
+            if (!contest.isStarted())
+                return new RestfulResult(StatusCode.NOT_FOUND, "未开始 not started");
+            if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
+                if (contest.getPrivilege().equals(Contest.TEAM)) {
+                    Team team = contest.getTeam();
+                    if (teamService.isUserInTeam(user, team)) {
+                        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
+                    } else {
+                        return new RestfulResult(StatusCode.NO_PRIVILEGE, "没有权限");
+                    }
+                }
+            }
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
         }
+        catch (Exception e){
+
+        }
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
+    }
+
+    private boolean isContestCreator(Contest contest, User currentUser) {
         return contest.getCreator().getId() == currentUser.getId();
     }
 
-//    @GetMapping("/background/access/{cid:[0-9]+}")
-//    public String isAccessContestBackground(@PathVariable("cid") Long cid,
-//                                            @SessionAttribute User currentUser) {
-//        Contest contest = contestService.getContestById(cid);
-//        if (isContestCreator(contest, currentUser) ||
-//                userService.getUserPermission(currentUser) == Teacher.ADMIN) {
-//            return "success";
-//        }
-//        return "negative";
-//    }
-
     @GetMapping("/background/{cid:[0-9]+}")
-    public Contest getUpdateContestInfo(@PathVariable("cid") Long cid,
-                                        @SessionAttribute User currentUser) {
-        Contest contest = contestService.getContestById(cid);
-        if (!isContestCreator(contest, currentUser)) {
-            throw new ForbiddenException();
+    public RestfulResult getUpdateContestInfo(@PathVariable("cid") Long cid,
+                                        @RequestParam("token") String token) {
+        try{
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+            User user = userService.getUserById(tokenModel.getUserId());
+            if (user == null)
+                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
+            Contest contest = contestService.getContestById(cid, true);
+            if (contest == null) {
+                return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
+            }
+            if (!isContestCreator(contest, user) || userService.getUserPermission(tokenModel.getPermissionCode(), "a5") != 1) {
+                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied!");
+            }
+            contest.setCreator(null);
+//            contest.setProblems(null);
+            contest.setSolutions(null);
+            contest.setTeam(null);
+            contest.setContestComments(null);
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", contest);
         }
-        contest.setCreator(null);
-        contest.setProblems(null);
-        contest.setSolutions(null);
-        contest.setTeam(null);
-        contest.setContestComments(null);
-        return contest;
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
     }
 
-//    @PostMapping("/background/{cid:[0-9]+}")
-//    public String updateContest(@PathVariable("cid") Long cid,
-//                                @SessionAttribute User currentUser,
-//                                @RequestBody EditContest editContest) {
-//        Contest contest = contestService.getContestById(cid);
-//        if (!isContestCreator(contest, currentUser) && userService.getUserPermission(currentUser) != Teacher.ADMIN) {
-//            throw new ForbiddenException("Permission denied!");
-//        }
-//        contest.setTitle(editContest.getTitle());
-//        contest.setDescription(editContest.getDescription());
-//        if (!contest.getPrivilege().equals(Contest.TEAM)) {
-//            if (!editContest.getPrivilege().equals(Contest.TEAM)) {
-//                contest.setPrivilege(editContest.getPrivilege());
-//            }
-//        }
-//        contest.setStartAndEndTime(editContest.getStartTime(), editContest.getLength());
-//        if (contest.getPrivilege().equals(Contest.PRIVATE)) {
-//            contest.setPassword(editContest.getPassword());
-//        }
-//        contestService.saveContest(contest);
-//        return "success";
-//    }
+    @PostMapping("/background/{cid:[0-9]+}")
+    public RestfulResult updateContest(@PathVariable("cid") Long cid,
+                                @RequestBody ContestVO contestVO) {
+        try{
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(contestVO.getToken()));
+            User user = userService.getUserById(tokenModel.getUserId());
+            if (user == null)
+                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
+            Contest contest = contestService.getContestById(cid);
+            if (contest == null) {
+                return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
+            }
+            if (!isContestCreator(contest, user) && userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
+                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied!");
+            }
+            contest.setTitle(contestVO.getTitle());
+            contest.setDescription(contestVO.getDescription());
+            long cnt = 1L;
+            List<ContestProblem> contestProblems = new ArrayList<>();
+            for (ContestVO.CreateProblem cp : contestVO.getProblems()) {
+                Problem p = problemService.getProblemById(cp.getId());
+                if (p == null)
+                    return new RestfulResult(StatusCode.NOT_FOUND, "problem error");;
+                contestProblems.add(new ContestProblem(p, cp.getTempTitle(), cnt++));
+            }
+            contestProblemRepository.deleteByContestId(contest.getId());
+            for (ContestProblem cp : contestProblems) {
+                cp.setContest(contest);
+                contestProblemRepository.save(cp);
+            }
+            if (!contest.getPrivilege().equals(Contest.TEAM)) {
+                if (!contestVO.getPrivilege().equals(Contest.TEAM)) {
+                    contest.setPrivilege(contestVO.getPrivilege());
+                }
+            }
+            contest.setStartAndEndTime(contestVO.getStartTime(), contestVO.getLength());
+            if (contest.getPrivilege().equals(Contest.PRIVATE)) {
+                contest.setPassword(contestVO.getPassword());
+            }
+            contestService.saveContest(contest);
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
+    }
 
     @GetMapping("/{cid:[0-9]+}")
     public Contest getContestDetail(@PathVariable("cid") Long cid,
@@ -416,21 +403,22 @@ public class ContestController {
     }
 
     @PostMapping("/create")
-    public String insertContestAction(@RequestBody CreateContest postContest
-            , @SessionAttribute User currentUser) {
+    public RestfulResult insertContestAction(@RequestBody ContestVO postContest) {
         try {
-            if (currentUser == null)
-                throw new NeedLoginException();
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(postContest.getToken()));
+            User user = userService.getUserById(tokenModel.getUserId());
+            if (user == null)
+                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
             LocalDateTime localDateTime = LocalDateTime.parse(postContest.getStartTime(), dtf);
             Instant startTime = Instant.from(localDateTime.atZone(ZoneId.systemDefault()));
             Instant endTime = startTime.plusSeconds(60 * postContest.getLength());
             List<ContestProblem> contestProblems = new ArrayList<>();
             long cnt = 1L;
-            for (CreateContest.CreateProblem cp : postContest.getProblems()) {
+            for (ContestVO.CreateProblem cp : postContest.getProblems()) {
                 Problem p = problemService.getProblemById(cp.getId());
                 if (p == null)
-                    return "problem error";
+                    return new RestfulResult(StatusCode.NOT_FOUND, "problem error");;
                 contestProblems.add(new ContestProblem(p, cp.getTempTitle(), cnt++));
             }
             Contest contest = new Contest(postContest.getTitle(),
@@ -438,11 +426,11 @@ public class ContestController {
                     postContest.getPrivilege(),
                     postContest.getPassword(),
                     startTime, endTime, Instant.now());
-            contest.setCreator(currentUser);
+            contest.setCreator(user);
             if (postContest.getPrivilege().equals(Contest.TEAM)) {
                 Team team = teamService.getTeamById(postContest.getTid());
                 if (team == null)
-                    throw new NotFoundException();
+                    return new RestfulResult(StatusCode.NOT_FOUND, "team not found");
                 contest.setTeam(team);
             } else {
                 contest.setTeam(null);
@@ -453,11 +441,11 @@ public class ContestController {
                 cp.setContest(contest);
                 contestProblemRepository.save(cp);
             }
-            return "success";
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
         } catch (Exception e) {
 //            e.printStackTrace();
         }
-        return "failed";
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
     }
 
     @Data
@@ -481,13 +469,14 @@ public class ContestController {
         String password;
         String startTime;
         Long length;
+        String token;
 
         public EditContest() {
         }
     }
 
     @Data
-    static class CreateContest {
+    static class ContestVO {
         private String title;
         private String description;
         private String privilege;
@@ -495,9 +484,10 @@ public class ContestController {
         private String startTime;
         private Long length;
         private Long tid;
+        private String token;
         private ArrayList<CreateProblem> problems;
 
-        public CreateContest() {
+        public ContestVO() {
         }
 
         @Data

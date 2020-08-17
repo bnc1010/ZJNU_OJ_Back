@@ -126,16 +126,17 @@ public class UserService {
     /**
      * get user's permission
      *
-     * @param user
+     * @param permissionCode
+     * @param target
      * @return -1 if normal users, otherwise return teacher privileges.
      */
-    public int getUserPermission(User user, String permissionCode) {
+    public int getUserPermission(String permissionCode, String target) {
         String [] permissionCodes = permissionCode.split("&");
         for (String pc : permissionCodes){
             if (pc.equals("au:")){
                 continue;
             }
-            if (pc.equals("a5")){
+            if (pc.equals(target)){
                 return 1;
             }
         }

@@ -123,6 +123,8 @@ public class User implements Cloneable, Comparable {
         setEmail(null);
         setIntro(null);
         setCreatetime(null);
+        setSalt(null);
+        setLevel(-1);
         return this;
     }
 }

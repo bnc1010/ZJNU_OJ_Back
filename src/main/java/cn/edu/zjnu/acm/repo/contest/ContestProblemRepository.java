@@ -30,5 +30,10 @@ public interface ContestProblemRepository extends JpaRepository<ContestProblem, 
     @Query(value = "UPDATE contest_problem set submitted=submitted+:sub where id = :pid", nativeQuery = true)
     void updateSubmittedNumber(@Param(value = "pid") Long pid, @Param(value = "sub") int sub);
 
+    @Transactional
+    @Modifying
+    @Query(value = "DELETE from contest_problem where contest_id = :c_id", nativeQuery = true)
+    void deleteByContestId(@Param(value = "c_id") Long cid);
+
     void deleteAllByProblem(Problem problem);
 }

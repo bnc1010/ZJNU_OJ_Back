@@ -22,14 +22,10 @@ public class MainController {
         this.config = config;
     }
 
-    @GetMapping("/")
-    public ModelAndView home() {
-        return new ModelAndView("index");
-    }
-
-    @GetMapping("/donate")
-    public ModelAndView donatePage() {
-        return new ModelAndView("donate");
+    @IgnoreSecurity
+    @GetMapping("/error")
+    public RestfulResult toError(){
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error", null);
     }
 
     @IgnoreSecurity

@@ -37,8 +37,11 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         HandlerMethod handlerMethod=(HandlerMethod)handler;
         Method method=handlerMethod.getMethod();
 
+
+
         // *******************************放行swagger相关的请求url，开发阶段打开，生产环境注释掉*******************************
         URL requestUrl = new URL(request.getRequestURL().toString());
+//        log.info(requestUrl.getPath());
         if (requestUrl.getPath().contains("configuration")) {
             return true;
         }
@@ -74,7 +77,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
 
         //检查权限
         if (!authorityManager.checkAuthority(tokenModel.getPermissionCode(), requestUrl.getPath())){
-            String message = tokenModel.getUserId() + "try to enter " + requestUrl.getPath() + " without permission";
+            String message = tokenModel.getUserId() + " try to enter " + requestUrl.getPath() + " without permission";
             log.info(message);
             throw new AuthorityException("无权访问");
         }

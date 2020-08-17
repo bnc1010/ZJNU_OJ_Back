@@ -17,10 +17,8 @@ import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.RestfulResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -30,20 +28,17 @@ import java.util.List;
 @CrossOrigin
 @RequestMapping("/api/status")
 public class StatusController {
-    private static final int PAGE_SIZE = 50;
     private final Config config;
     private final SolutionService solutionService;
     private final UserService userService;
     private final ProblemService problemService;
-    private final HttpSession session;
     private final TokenManager tokenManager;
 
-    public StatusController(Config config, SolutionService solutionService, UserService userService, ProblemService problemService, HttpSession session, TokenManager tokenManager) {
+    public StatusController(Config config, SolutionService solutionService, UserService userService, ProblemService problemService, TokenManager tokenManager) {
         this.config = config;
         this.solutionService = solutionService;
         this.userService = userService;
         this.problemService = problemService;
-        this.session = session;
         this.tokenManager  = tokenManager;
     }
 
@@ -75,29 +70,35 @@ public class StatusController {
                                       @RequestParam(value = "user", defaultValue = "") String username,
                                       @RequestParam(value = "pid", defaultValue = "") Long pid,
                                       @RequestParam(value = "AC", defaultValue = "") String AC) throws Exception {
-        if (AC.equals("true"))
-            AC = "Accepted";
-        else
-            AC = "";
-        page = Math.max(page, 0);
-        boolean getAll = false;
-        if (username.equals("") && pid == null && AC.equals(""))
-            getAll = true;
-        User user = userService.getUserByUsername(username);
-        Problem problem = problemService.getActiveProblemById(pid);
-        Page<Solution> page_return = getAll ?
-                solutionService.getStatus(page, pagesize) :
-                solutionService.getStatus(user, problem, AC, page, pagesize);
-        page_return.getContent().forEach(s -> {
-            try {
-                s.setUser(s.getUser().clone());
-            } catch (CloneNotSupportedException ignored) {
-            }
-            s.setSource(null);
-            s.setInfo(null);
-            solutionFilter(s);
-        });
-        return new RestfulResult(200, "success", page_return);
+        try{
+            if (AC.equals("true"))
+                AC = "Accepted";
+            else
+                AC = "";
+            page = Math.max(page, 0);
+            boolean getAll = false;
+            if (username.equals("") && pid == null && AC.equals(""))
+                getAll = true;
+            User user = userService.getUserByUsername(username);
+            Problem problem = problemService.getActiveProblemById(pid);
+            Page<Solution> page_return = getAll ?
+                    solutionService.getStatus(page, pagesize) :
+                    solutionService.getStatus(user, problem, AC, page, pagesize);
+            page_return.getContent().forEach(s -> {
+                try {
+                    s.setUser(s.getUser().clone());
+                } catch (CloneNotSupportedException ignored) {
+                }
+                s.setSource(null);
+                s.setInfo(null);
+                solutionFilter(s);
+            });
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", page_return);
+        }
+        catch (Exception e){
+            log.info("system turn out a mistake in api /api/status");
+        }
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "error");
     }
 
     @GetMapping("/view/{id:[0-9]+}")
@@ -112,7 +113,7 @@ public class StatusController {
                 solution.setInfo(null);
                 solution.setSource("This Source Code Is Not Shared!");
             }
-            if (userService.getUserPermission(user, tokenModel.getPermissionCode()) == -1 && !solution.getShare()) {
+            if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1 && !solution.getShare()) {
                 if (user.getId() != solution.getUser().getId()) {
                     // This submit not belongs to this user.
                     solution.setSource("This Source Code Is Not Shared!");
