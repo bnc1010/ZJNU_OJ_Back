@@ -3,6 +3,8 @@ package cn.edu.zjnu.acm.controller;
 import cn.edu.zjnu.acm.authorization.manager.AuthorityManager;
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.constant.Constants;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.exception.AuthorityException;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.common.ve.PermissionVO;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,11 +47,11 @@ public class PermissionController {
     @ApiOperation(value = "查询列表", notes = "参数：token")
     @RequestMapping(value = "all", method = RequestMethod.POST)
     @ResponseBody
-    public RestfulResult getPermissionList(@RequestBody PermissionVO requestPermission) {
+    public RestfulResult getPermissionList(HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try {
-            String tk = requestPermission.getToken();
-            userOperationService.checkOperationToUserByToken(requestPermission.getToken(),-1);
+            userOperationService.checkOperationToUserByToken(tk,-1);
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] pus = tokenModel.getPermissionCode().split("&");
             List<Permission> permissionsList = new ArrayList<>();
@@ -61,7 +64,7 @@ public class PermissionController {
             }
             restfulResult.setData(permissionsList);
         } catch (Exception e) {
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage());
             log.info("查询列表失败！", e);
         }
@@ -71,16 +74,16 @@ public class PermissionController {
     @ApiOperation(value = "查询角色拥有的权限", notes = "参数：token")
     @RequestMapping(value = "get", method = RequestMethod.POST)
     @ResponseBody
-    public RestfulResult getPermissionByRoleId(@RequestBody RoleVO requestRole) {
+    public RestfulResult getPermissionByRoleId(@RequestBody RoleVO requestRole, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         try {
-            String tk = requestRole.getToken();
+            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
             userOperationService.checkOperationToUserByToken(tk,-1);
             tokenManager.getToken(Base64Util.decodeData(tk));
             List permissions = roleService.getPermissionIdByRoleId(requestRole.getId());
             restfulResult.setData(permissions);
         } catch (Exception e) {
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage("Request permission Failed！");
             log.error("查询失败" + requestRole.getId(), e);
         }
@@ -92,11 +95,12 @@ public class PermissionController {
     @ApiOperation(value = "添加权限",notes ="参数：Name,Url,Type,token。添加权限后系统管理员角色权限增加，将更新token，回传一个新token")
     @RequestMapping(value = "add", method = RequestMethod.POST)
     @ResponseBody
-    public RestfulResult addPermission(@RequestBody PermissionVO requestPermission) {
+    public RestfulResult addPermission(@RequestBody PermissionVO requestPermission, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         TokenModel tokenModel = null;
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try {
-            userOperationService.checkOperationToUserByToken(requestPermission.getToken(), -1);
+            userOperationService.checkOperationToUserByToken(tk, -1);
             Permission permission = new Permission();
             permission.setName(requestPermission.getName());
             permission.setUrl(requestPermission.getUrl());
@@ -105,7 +109,6 @@ public class PermissionController {
             long pId = permissionService.getIdByNameAndUrl(permission.getName(),permission.getUrl());
             List pList = new ArrayList<Integer>();pList.add(pId);
             roleService.grantPrivileges(1,pList);
-            String tk = requestPermission.getToken();
             tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] authorityCode = authorityManager.getAuthorityCode(tokenModel.getUserId());
             tokenManager.deleteToken(tokenModel.getUserId());
@@ -113,12 +116,12 @@ public class PermissionController {
             restfulResult.setData(Base64Util.encodeData(token.getToken()));
         }
         catch (AuthorityException e){
-            restfulResult.setCode(403);
-            restfulResult.setMessage(e.getMessage());
+            restfulResult.setCode(StatusCode.NO_PRIVILEGE);
+            restfulResult.setMessage("权限不足");
             log.error(e.getMessage() + "token:" + requestPermission.getToken());
         }
         catch (Exception e){
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             if (e.getMessage().contains("could not execute statement; SQL [n/a];")){
                 restfulResult.setMessage("该表达式或权限名已有对应权限，添加失败！");
             }
@@ -139,7 +142,7 @@ public class PermissionController {
             permissionService.deletePermission(requestPermission.getId());
         }
         catch (Exception e){
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage());
             log.error("删除失败！" + e.getMessage());
         }
@@ -151,16 +154,16 @@ public class PermissionController {
     @ResponseBody
     public RestfulResult updatePermission(@RequestBody PermissionVO requestPermission) {
         RestfulResult restfulResult = new RestfulResult();
+        Permission permission = new Permission();
+        permission.setId(requestPermission.getId());
+        permission.setName(requestPermission.getName());
+        permission.setUrl(requestPermission.getUrl());
+        permission.setType(requestPermission.getType());
         try {
-            Permission permission = new Permission();
-            permission.setId(requestPermission.getId());
-            permission.setName(requestPermission.getName());
-            permission.setUrl(requestPermission.getUrl());
-            permission.setType(requestPermission.getType());
             permissionService.updateByPrimaryKey(permission);
         }
         catch (Exception e){
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             if (e.getMessage().contains("could not execute statement; SQL [n/a];")){
                 restfulResult.setMessage("该表达式或权限名已有对应权限，添加失败！");
             }

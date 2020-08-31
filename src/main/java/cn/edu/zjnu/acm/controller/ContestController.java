@@ -116,7 +116,7 @@ public class ContestController {
             if (contest == null)
                 return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
             if (!contest.isStarted())
-                return new RestfulResult(StatusCode.NOT_FOUND, "未开始 not started");
+                return new RestfulResult(StatusCode.HTTP_SUCCESS, "not started");
             if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
                 if (contest.getPrivilege().equals(Contest.TEAM)) {
                     Team team = contest.getTeam();
@@ -138,6 +138,31 @@ public class ContestController {
     private boolean isContestCreator(Contest contest, User currentUser) {
         return contest.getCreator().getId() == currentUser.getId();
     }
+
+    @GetMapping("/background/access/{cid:[0-9]+}")
+    public RestfulResult accessToGetUpdateContestInfo(@PathVariable("cid") Long cid,
+                                              @RequestParam("token") String token) {
+        try{
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+            User user = userService.getUserById(tokenModel.getUserId());
+            if (user == null)
+                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
+            Contest contest = contestService.getContestById(cid, true);
+            if (contest == null) {
+                return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
+            }
+            if (!isContestCreator(contest, user) || userService.getUserPermission(tokenModel.getPermissionCode(), "a5") != 1) {
+                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied!");
+            }
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
+    }
+
+
 
     @GetMapping("/background/{cid:[0-9]+}")
     public RestfulResult getUpdateContestInfo(@PathVariable("cid") Long cid,
@@ -269,7 +294,7 @@ public class ContestController {
     }
 
     @PostMapping("/submit/{pid:[0-9]+}/{cid:[0-9]+}")
-    public Result submitProblemInContest(@PathVariable("pid") Long pid,
+    public RestfulResult submitProblemInContest(@PathVariable("pid") Long pid,
                                          @PathVariable("cid") Long cid,
                                          HttpServletRequest request,
                                          @RequestBody ProblemController.SubmitCodeObject submitCodeObject) {
@@ -281,7 +306,7 @@ public class ContestController {
         String language = submitCodeObject.getLanguage();
         String _temp = problemService.checkSubmitFrequency(tokenModel.getUserId(), source);
         if (_temp != null)
-            new Result(403, _temp, null , null);
+            new Result(StatusCode.NO_PRIVILEGE, _temp, null , null);
         @NotNull User user;
         try {
             user = (User) session.getAttribute("currentUser");
@@ -295,14 +320,14 @@ public class ContestController {
             Contest contest = contestService.getContestById(cid);
             Contest scontest = (Contest) session.getAttribute("contest" + cid);
             if (scontest == null || scontest.getId() != contest.getId()) {
-                return new Result(403, "Need attendance!", null , null);
+                return new RestfulResult(403, "Need attendance!", null , null);
             }
             if (contest.isEnded() || !contest.isStarted()) {
-                return new Result(403, "The contest is not Running!", null , null);
+                return new RestfulResult(403, "The contest is not Running!", null , null);
             }
             ContestProblem cproblem = contestProblemRepository.findByContestAndTempId(contest, pid).orElse(null);
             if (cproblem == null) {
-                return new Result(404, "Problem Not Exist", null , null);
+                return new RestfulResult(404, "Problem Not Exist", null , null);
             }
             Problem problem = cproblem.getProblem();
             Solution solution = new Solution(user, problem, language, source, request.getRemoteAddr(), share);

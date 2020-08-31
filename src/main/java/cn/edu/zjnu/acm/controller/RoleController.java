@@ -2,6 +2,8 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.constant.Constants;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.common.ve.RoleVO;
 import cn.edu.zjnu.acm.entity.Role;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,10 +46,10 @@ public class RoleController{
     @ApiOperation(value = "查询列表")
     @RequestMapping(value = "all", method = RequestMethod.POST)
     @ResponseBody
-    public RestfulResult getRoleList(@RequestBody RoleVO requestRole) {
+    public RestfulResult getRoleList(@RequestBody RoleVO requestRole, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try {
-            String tk = requestRole.getToken();
             userOperationService.checkOperationToUserByToken(tk,-1);
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] aus = tokenModel.getRoleCode().split("&");
@@ -63,7 +66,7 @@ public class RoleController{
             }
             restfulResult.setData(roleList);
         } catch (Exception e) {
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage());
             log.info("查询列表失败！");
         }
@@ -77,16 +80,14 @@ public class RoleController{
     public RestfulResult addRole(@RequestBody RoleVO requestRole) {
         RestfulResult restfulResult = new RestfulResult();
         try {
-            System.out.println(requestRole);
             Role role = new Role();
             role.setName(requestRole.getName());
             role.setType(requestRole.getType());
             role.setLevel(requestRole.getLevel());
-            System.out.println(role.toString());
             roleService.insert(role);
         }
         catch (Exception e){
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage("Add role Failed！");
             log.info("添加失败！", e);
         }
@@ -123,7 +124,7 @@ public class RoleController{
             roleService.deleteByRoleId(requestRole.getId());
         }
         catch (Exception e){
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage("Delete role Failed！");
             log.info("删除失败！", e);
         }
@@ -134,11 +135,10 @@ public class RoleController{
     @ApiOperation(value = "给角色赋权限", notes = "参数：id,权限码数组pids,token")
     @RequestMapping(value = "grant", method = RequestMethod.POST)
     @ResponseBody
-    public RestfulResult grantPrivilege(@RequestBody RoleVO requestRole) {
-        System.out.print(requestRole);
+    public RestfulResult grantPrivilege(@RequestBody RoleVO requestRole, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try {
-            String tk = requestRole.getToken();
             userOperationService.checkOperationToUserByToken(tk,-1);
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] aus = tokenModel.getPermissionCode().split("&");
@@ -156,7 +156,7 @@ public class RoleController{
                     }
                 }
                 if (!ff){
-                    restfulResult.setCode(500);
+                    restfulResult.setCode(StatusCode.NOT_FOUND);
                     restfulResult.setMessage("存在越权行为！");
                     return restfulResult;
                 }
@@ -165,7 +165,7 @@ public class RoleController{
         }
         catch (Exception e){
             e.printStackTrace();
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage() == null ? "未知错误" : e.getMessage());
             log.info("赋权失败！");
         }
@@ -185,7 +185,7 @@ public class RoleController{
             }
             for (long rp : requestRole.getPIds()){
                 if (!map.containsKey(rp)){
-                    restfulResult.setCode(500);
+                    restfulResult.setCode(StatusCode.HTTP_FAILURE);
                     restfulResult.setMessage("该角色没有权限，permissionId:" + rp);
                     return restfulResult;
                 }
@@ -195,7 +195,7 @@ public class RoleController{
             }
         }
         catch (Exception e){
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage() == null ? "去权限失败！" : e.getMessage());
             log.info("去权限失败！ 参数：" + requestRole);
         }

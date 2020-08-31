@@ -50,7 +50,7 @@ import java.util.concurrent.Future;
 @RequestMapping("/api/ojadmin")
 public class AdminController {
     public static final int PAGE_SIZE = 50;
-    private static final ExecutorService threadPool = Executors.newFixedThreadPool(200);
+    private static final ExecutorService threadPool = Executors.newFixedThreadPool(StatusCode.HTTP_SUCCESS);
     private final UserProblemRepository userProblemRepository;
     private final ProblemService problemService;
     private final ContestService contestService;
@@ -107,7 +107,6 @@ public class AdminController {
     public RestfulResult getAllProblems(@RequestParam(value = "page", defaultValue = "0") int page,
                                         @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
                                         @RequestParam(value = "search", defaultValue = "") String search) {
-        System.out.println("search: " + search);
         page = Math.max(page, 0);
         Page<Problem> problemPage;
         problemPage = problemService.getAllProblems(page, pagesize, search);
@@ -124,13 +123,13 @@ public class AdminController {
             contest.getCreator().hideInfo();
             contest.clearLazyRoles();
         });
-        return new RestfulResult(200, "success", contestPage);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", contestPage);
     }
 
     @PostMapping("/problem/insert")
     public RestfulResult addProblem(@RequestBody ProblemVO problem) {
         if (problemService.isProblemRepeated(problem.getTitle())) {
-            return new RestfulResult(500, "Problem name already existed!");
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "Problem name already existed!");
         }
         Problem p = new Problem(problem.getTitle(), problem.getDescription(),
                 problem.getInput(), problem.getOutput(), problem.getSampleInput(),
@@ -139,7 +138,7 @@ public class AdminController {
         p.setActive(problem.getActive());
         p.setTags(problemService.convertString2Tag(problem.getTags()));
         problemService.insertNewProblem(p);
-        return new RestfulResult(200, "success");
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
     }
 
     @ApiOperation(value = "更新题目", notes = "更新题目", produces = "application/json")
@@ -147,7 +146,7 @@ public class AdminController {
     public RestfulResult updateProblem(@RequestBody ProblemVO problem, @PathVariable("pid") Long pid) {
         Problem p = problemService.getProblemById(pid);
         if (null == p) {
-            return new RestfulResult(500, "Problem not existed!");
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "Problem not existed!");
         }
         p.setTitle(problem.getTitle());
         p.setDescription(problem.getDescription());
@@ -163,7 +162,7 @@ public class AdminController {
         p.setActive(problem.getActive());
         p.setTags(problemService.convertString2Tag(problem.getTags()));
         problemService.insertNewProblem(p);
-        return new RestfulResult(200, "success");
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
     }
 
     @ApiOperation(value = "显示题目", notes = "显示题目", produces = "application/json")
@@ -171,8 +170,8 @@ public class AdminController {
     public RestfulResult showProblem(@PathVariable Long id) {
         Problem problem = problemService.getProblemById(id);
         if (problem == null)
-            throw new NotFoundException();
-        return new RestfulResult(200, "success", problem);
+            return new RestfulResult(StatusCode.NOT_FOUND, "Problem not existed!", null);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problem);
     }
 
 //    @ApiOperation(value = "删除题目", notes = "删除题目", produces = "application/json")
@@ -191,7 +190,7 @@ public class AdminController {
 //        userProblemRepository.deleteAllByProblem(problem);
 //        contestProblemRepository.deleteAllByProblem(problem);
 //        problemRepository.delete(problem);
-//        return new RestfulResult(200, "success", null);
+//        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", null);
 //    }
 
     @GetMapping("/correctData")
@@ -310,7 +309,7 @@ public class AdminController {
 
     @GetMapping("/tag")
     public RestfulResult getAllTags() {
-        return new RestfulResult(200, RestfulResult.SUCCESS, problemService.getAllTags());
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, problemService.getAllTags());
     }
 
     @PostMapping("/tag/add")
@@ -356,6 +355,4 @@ public class AdminController {
             setNotice(config.getNotice());
         }
     }
-
-
 }

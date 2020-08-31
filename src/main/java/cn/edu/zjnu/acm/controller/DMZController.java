@@ -4,6 +4,8 @@ import cn.edu.zjnu.acm.authorization.manager.AuthorityManager;
 import cn.edu.zjnu.acm.authorization.manager.impl.RedisTokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.constant.Constants;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.common.ve.UserVO;
 import cn.edu.zjnu.acm.entity.Role;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,26 +51,28 @@ public class DMZController {
     @IgnoreSecurity
     public RestfulResult login(@RequestBody User requestUser) {
         RestfulResult restfulResult = new RestfulResult();
+        User user = null;
+        TokenModel token = null;
         try {
-            User user = userService.loginUser(requestUser);
+            user = userService.loginUser(requestUser);
             String [] authorityCode = authorityManager.getAuthorityCode(user.getId());
 //             判断用户是否已经登录过，如果登录过，就将redis缓存中的token删除，重新创建新的token值，保证一个用户在一个时间段只有一个可用 Token
             if (redisTokenManager.hasToken(user.getId())) {
                 redisTokenManager.deleteToken(user.getId());
             }
-            TokenModel token = redisTokenManager.createToken(user.getId(), authorityCode[0], authorityCode[1], user.getSalt());
-            UserVO userVO = new UserVO();
-            userVO.setId(user.getId());
-            userVO.setName(user.getName());
-            userVO.setUsername(user.getUsername());
-            userVO.setToken(Base64Util.encodeData(token.getToken()));
-            restfulResult.setData(userVO);
+            token = redisTokenManager.createToken(user.getId(), authorityCode[0], authorityCode[1], user.getSalt());
         } catch (Exception e) {
-//            e.printStackTrace();
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage(e.getMessage());
             log.info("用户登录失败！参数信息：" + requestUser.toString());
+            return restfulResult;
         }
+        UserVO userVO = new UserVO();
+        userVO.setId(user.getId());
+        userVO.setName(user.getName());
+        userVO.setUsername(user.getUsername());
+        userVO.setToken(Base64Util.encodeData(token.getToken()));
+        restfulResult.setData(userVO);
         return restfulResult;
     }
 
@@ -80,22 +85,22 @@ public class DMZController {
     public RestfulResult add(@RequestBody UserVO requestUser) {
         RestfulResult restfulResult = new RestfulResult();
         User user = new User();
+        user.setEmail(requestUser.getEmail());
+        user.setName(requestUser.getName());
+        user.setPassword(requestUser.getPassword());
+        user.setUsername(requestUser.getUsername());
+        if (requestUser.getIntro() == null){
+            user.setIntro("这人很懒，什么也没留下");
+        }
+        else{
+            user.setIntro(requestUser.getIntro());
+        }
         try {
-            user.setEmail(requestUser.getEmail());
-            user.setName(requestUser.getName());
-            user.setPassword(requestUser.getPassword());
-            user.setUsername(requestUser.getUsername());
-            if (requestUser.getIntro() == null){
-                user.setIntro("这人很懒，什么也没留下");
-            }
-            else{
-                user.setIntro(requestUser.getIntro());
-            }
             userService.registerUser(user);
         }
         catch (Exception e){
-            restfulResult.setCode(500);
-            restfulResult.setMessage("注册失败！" + e.getMessage());
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
+            restfulResult.setMessage("注册失败！");
             log.info("新增User失败！参数信息：User = " + user.toString());
         }
         return restfulResult;
@@ -108,17 +113,18 @@ public class DMZController {
     @ApiOperation(value = "用户登出", notes = "参数：token")
     @RequestMapping(value = "/logout", method = RequestMethod.POST)
     @ResponseBody
-    public RestfulResult logout(@RequestBody UserVO requestUser) {
+    public RestfulResult logout(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try {
-            TokenModel token = redisTokenManager.getToken(Base64Util.decodeData(requestUser.getToken()));
+            TokenModel token = redisTokenManager.getToken(Base64Util.decodeData(tk));
             boolean hasKey = redisTokenManager.deleteToken(token.getUserId());
             if (!hasKey){
-                restfulResult.setCode(404);
+                restfulResult.setCode(StatusCode.NEED_LOGIN);
                 restfulResult.setMessage("该用户未登录");
             }
         } catch (Exception e) {
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage("Logout failed!");
             log.info("遇到未知错误，退出失败！用户参数：" + requestUser.toString());
         }
@@ -136,7 +142,7 @@ public class DMZController {
             List roles = authorityManager.getRoleByToken(token.getRoleCode());
             restfulResult.setData(roles);
         } catch (Exception e) {
-            restfulResult.setCode(500);
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
             restfulResult.setMessage("Logout failed!");
             log.info("遇到未知错误，退出失败！用户参数：" + requestUser.toString());
         }

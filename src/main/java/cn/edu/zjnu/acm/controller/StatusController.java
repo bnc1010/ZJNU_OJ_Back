@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -102,11 +103,12 @@ public class StatusController {
     }
 
     @GetMapping("/view/{id:[0-9]+}")
-    public RestfulResult restfulShowSourceCode(@PathVariable(value = "id") Long id, @RequestParam(value = "token", defaultValue = "") String token) {
+    public RestfulResult restfulShowSourceCode(@PathVariable(value = "id") Long id, HttpServletRequest request) {
         Solution solution = null;
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try {
             solution = solutionService.getSolutionById(id);
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             assert solution != null;
             User user = userService.getUserById(tokenModel.getUserId());
             if (user == null) {
@@ -128,7 +130,7 @@ public class StatusController {
             } else {
                 solution.setContest(null);
             }
-            return  new RestfulResult(StatusCode.HTTP_SUCCESS, "success", solutionFilter(solution));
+            return  new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, solutionFilter(solution));
         } catch (Exception e) {
             e.printStackTrace();
             throw new NotFoundException();
@@ -149,7 +151,7 @@ public class StatusController {
                 if (solution.getUser().getId().equals(user.getId())) {
                     solution.setShare(!solution.getShare());
                     solutionService.updateSolutionShare(solution);
-                    return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", solution.getShare());
+                    return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, solution.getShare());
                 }
             }
         } catch (Exception ignored) {
@@ -158,9 +160,10 @@ public class StatusController {
     }
 
     @GetMapping("/user/latest/submit/{id:[0-9]+}")
-    public RestfulResult userSubmitLatestHistory(@PathVariable("id") Long pid, @RequestParam(value = "token", defaultValue = "") String token) {
+    public RestfulResult userSubmitLatestHistory(@PathVariable("id") Long pid, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
         try {
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
             Problem problem = problemService.getActiveProblemById(pid);
             User user = userService.getUserById(tokenModel.getUserId());
             if (user != null && problem != null) {
@@ -173,11 +176,11 @@ public class StatusController {
                     s.setSource(null);
                     s.setContest(null);
                 });
-                return new RestfulResult(200, RestfulResult.SUCCESS, solutions);
+                return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, solutions);
             }
         } catch (Exception ignored) {
         }
-        return new RestfulResult(200, RestfulResult.SUCCESS, new LinkedList<>());
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, new LinkedList<>());
     }
 
 }

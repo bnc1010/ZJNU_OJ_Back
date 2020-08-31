@@ -41,6 +41,7 @@ public class JsonWebTokenManagerImpl implements JsonWebTokenManager {
                 .signWith(SignatureAlgorithm.HS256, Constants.SECRET_KEY)
                 .compact();
         return token;
+
     }
 
     @Override

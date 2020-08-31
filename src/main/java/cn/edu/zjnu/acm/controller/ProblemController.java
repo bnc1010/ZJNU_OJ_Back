@@ -3,6 +3,7 @@ package cn.edu.zjnu.acm.controller;
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.entity.User;
@@ -66,28 +67,33 @@ public class ProblemController {
                                          @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
                                          @RequestParam(value = "search", defaultValue = "") String search) {
         page = Math.max(page, 0);
-        Page<Problem> problemPage;
-        if (search != null && search.length() > 0) {
-            int spl = search.lastIndexOf("$$");
-            if (spl >= 0) {
-                String tags = search.substring(spl + 2);
-                search = search.substring(0, spl);
-                String[] tagNames = tags.split("\\,");
-                List<Problem> _problems = problemService.searchActiveProblem(0, 1, search, true).getContent();
-                problemPage = problemService.getByTagName(page, pagesize, Arrays.asList(tagNames), _problems);
+        Page<Problem> problemPage = null;
+        try{
+            if (search != null && search.length() > 0) {
+                int spl = search.lastIndexOf("$$");
+                if (spl >= 0) {
+                    String tags = search.substring(spl + 2);
+                    search = search.substring(0, spl);
+                    String[] tagNames = tags.split("\\,");
+                    List<Problem> _problems = problemService.searchActiveProblem(0, 1, search, true).getContent();
+                    problemPage = problemService.getByTagName(page, pagesize, Arrays.asList(tagNames), _problems);
+                } else {
+                    problemPage = problemService.searchActiveProblem(page, pagesize, search, false);
+                }
             } else {
-                problemPage = problemService.searchActiveProblem(page, pagesize, search, false);
+                problemPage = problemService.getAllActiveProblems(page, pagesize);
             }
-        } else {
-            problemPage = problemService.getAllActiveProblems(page, pagesize);
+            for (Problem p : problemPage.getContent()) {
+                p.setInput(null);
+                p.setOutput(null);
+                p.setHint(null);
+                p.setSource(null);
+                p.setSampleInput(null);
+                p.setSampleOutput(null);
+            }
         }
-        for (Problem p : problemPage.getContent()) {
-            p.setInput(null);
-            p.setOutput(null);
-            p.setHint(null);
-            p.setSource(null);
-            p.setSampleInput(null);
-            p.setSampleOutput(null);
+        catch (Exception e){
+            return  new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
         }
         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problemPage);
     }
@@ -116,37 +122,37 @@ public class ProblemController {
     }
 
     @PostMapping("/submit/{id:[0-9]+}")
-    public Result submitProblem(@PathVariable("id") Long id,
+    public RestfulResult submitProblem(@PathVariable("id") Long id,
                                 @RequestBody SubmitCodeObject submitCodeObject,
                                 HttpServletRequest request) {
         try{
-            String tk = submitCodeObject.getToken();
+            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String source = submitCodeObject.getSource();
             boolean share = submitCodeObject.isShare();
             String language = submitCodeObject.getLanguage();
             String _temp = problemService.checkSubmitFrequency(tokenModel.getUserId(), source);
             if (_temp != null)
-                return new Result(403, _temp, null , null);
+                return new RestfulResult(StatusCode.NO_PRIVILEGE, _temp, null , null);
             User user = userService.getUserById(tokenModel.getUserId());
             if (user == null) {
-                throw new NeedLoginException();
+                return new RestfulResult(StatusCode.NEED_LOGIN, "need login");
             }
             Problem problem = problemService.getActiveProblemById(id);
             if (problem == null) {
-                throw new NotFoundException("Problem Not Exist");
+                return new RestfulResult(StatusCode.NOT_FOUND, "problem not found");
             }
 
         //null检验完成
         Solution solution = solutionService.insertSolution(new Solution(user, problem, language, source, request.getRemoteAddr(), share));
         if (solution == null)
-            return new Result(400, "submitted failed", null , null);
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "submitted failed", null , null);
 //            return restService.submitCode(solution) == null ? "judge failed" : "success";
             judgeService.submitCode(solution);
-            return new Result(StatusCode.HTTP_SUCCESS, "success", null , null);
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", null , null);
         } catch (Exception e) {
             e.printStackTrace();
-            return new Result(500, "Internal error", null , null);
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "Internal error", null , null);
         }
     }
 
@@ -165,12 +171,12 @@ public class ProblemController {
     }
 
     @GetMapping("/analysis/{pid:[0-9]+}")
-    public RestfulResult getProblemArticle(@PathVariable Long pid,
-                                           @RequestParam(value = "token", defaultValue = "") String token) {
+    public RestfulResult getProblemArticle(@PathVariable Long pid, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         Problem problem = checkProblemExist(pid);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
         User user = userService.getUserById(tokenModel.getUserId());
-        if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
+        if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {//a5是oj管理员
             if (!problemService.isUserAcProblem(user, problem)) {
                 throw new ForbiddenException("Access after passing the question");
             }

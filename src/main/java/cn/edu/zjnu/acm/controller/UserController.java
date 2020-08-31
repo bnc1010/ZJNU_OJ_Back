@@ -2,6 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.common.utils.MD5Util;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -98,10 +100,10 @@ public class UserController{
     @ApiOperation(value = "根据id查询指定的User", notes = "参数:uId")
     @ResponseBody
     @RequestMapping(value = "/roles", method = RequestMethod.POST)
-    public RestfulResult getUserRole(@RequestBody UserVO requestUser) {
+    public RestfulResult getUserRole(@RequestBody UserVO requestUser,HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         try {
-            String tk = requestUser.getToken();
+            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
             userOperationService.checkOperationToUserByToken(tk, requestUser.getId());
             List<Long> rIds = roleService.getRoleIdByUserId(requestUser.getId());
             restfulResult.setData(rIds);
@@ -117,10 +119,10 @@ public class UserController{
     @ApiOperation(value = "更新指定的User", notes = "uId,需要更改的字段")
     @ResponseBody
     @RequestMapping(value = "/update", method = RequestMethod.POST)
-    public RestfulResult update(@RequestBody UserVO requestUser) {
+    public RestfulResult update(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         try {
-            String tk = requestUser.getToken();
+            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
             userOperationService.checkOperationToUserByToken(tk, requestUser.getId());
             User oldUser = userService.getUserById(requestUser.getId());
 
@@ -143,10 +145,10 @@ public class UserController{
     @ApiOperation(value = "根据id物理删除指定的Role，需谨慎！", notes = "参数：uIds,token")
     @ResponseBody
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
-    public RestfulResult delete(@RequestBody UserVO requestUser) {
+    public RestfulResult delete(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         try {
-            String tk = requestUser.getToken();
+            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
             boolean allOk = true;
             for(long uId : requestUser.getUserIds()){
                 userOperationService.checkOperationToUserByToken(tk, uId);
@@ -169,10 +171,10 @@ public class UserController{
     @ApiOperation(value = "根据uid赋角色", notes = "参数：uId，roleCode数组,token")
     @ResponseBody
     @RequestMapping(value = "/grant", method = RequestMethod.POST)
-    public RestfulResult grantUser(@RequestBody UserVO requestUser) {
+    public RestfulResult grantUser(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         try {
-            String tk = requestUser.getToken();
+            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
             if (tk == null){
                 restfulResult.setCode(StatusCode.HTTP_FAILURE);
                 restfulResult.setMessage("token无效");
@@ -257,31 +259,28 @@ public class UserController{
     @ApiOperation(value = "根据uid去角色", notes = "参数：uId，roleCode数组,token")
     @ResponseBody
     @RequestMapping(value = "/drop", method = RequestMethod.POST)
-    public RestfulResult dropRole(@RequestBody UserVO requestUser) {
+    public RestfulResult dropRole(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        if (tk == null) {
+            restfulResult.setCode(StatusCode.HTTP_FAILURE);
+            restfulResult.setMessage("token无效");
+            return restfulResult;
+        }
         try {
-            String tk = requestUser.getToken();
-            if (tk == null) {
-                restfulResult.setCode(StatusCode.HTTP_FAILURE);
-                restfulResult.setMessage("token无效");
-                return restfulResult;
-            }
             TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             User nowUser = userService.getUserById(tokenModel.getUserId());
             User targetUser = userService.getUserById(requestUser.getId());
-
             if (targetUser == null){
                 restfulResult.setCode(StatusCode.HTTP_FAILURE);
                 restfulResult.setMessage("操作对象不存在!");
                 return restfulResult;
             }
-
             if (targetUser.getLevel() <= nowUser.getLevel()){
                 restfulResult.setCode(StatusCode.HTTP_FAILURE);
                 restfulResult.setMessage("无权对该用户操作！");
                 return restfulResult;
             }
-
             int minRank = 1000;
             Map map = new HashMap();
             List<Role> roles = roleService.getRoleByUserId(targetUser.getId());
@@ -325,10 +324,10 @@ public class UserController{
     @ApiOperation(value = "根据uId重置密码", notes = "参数：uId,token")
     @ResponseBody
     @RequestMapping(value = "/reset", method = RequestMethod.POST)
-    public RestfulResult RestPassword(@RequestBody UserVO requestUser) {
+    public RestfulResult RestPassword(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         try{
-            String tk = requestUser.getToken();
+            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
             User u = userOperationService.checkOperationToUserByToken(tk, requestUser.getId());
             u = userService.setUserPassword(u, "123456");
             userService.updateUserInfo(u);

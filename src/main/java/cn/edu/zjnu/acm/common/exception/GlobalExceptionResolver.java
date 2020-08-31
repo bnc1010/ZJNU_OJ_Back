@@ -1,5 +1,6 @@
 package cn.edu.zjnu.acm.common.exception;
 
+import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.util.RestfulResult;
 import cn.edu.zjnu.acm.util.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -16,31 +17,31 @@ import javax.validation.ConstraintViolationException;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionResolver {
-    public static final Result pleaseLoginResult = new Result(403, "请登录 Please Login", null, null);
+    public static final RestfulResult pleaseLoginResult = new RestfulResult(StatusCode.NEED_LOGIN, "请登录 Please Login", null, null);
 
     @ExceptionHandler(NeedLoginException.class)
     @ResponseBody
-    public Result exceptionHandle() {
+    public RestfulResult exceptionHandle() {
         return pleaseLoginResult;
     }
 
     @ExceptionHandler(UnavailableException.class)
     @ResponseBody
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public Result unavailableHandle() {
-        return new Result(503, "维护中，不可用", null, null);
+    public RestfulResult unavailableHandle() {
+        return new RestfulResult(503, "维护中，不可用", null, null);
     }
 
     @ExceptionHandler({BindException.class, ConstraintViolationException.class})
-    public Result validatorExceptionHandler(Exception e) {
+    public RestfulResult validatorExceptionHandler(Exception e) {
         String msg = e instanceof BindException ? String.valueOf(((BindException) e).getBindingResult())
                 : String.valueOf(((ConstraintViolationException) e).getConstraintViolations());
-        return new Result(400, msg, null, null);
+        return new RestfulResult(400, msg, null, null);
     }
 
     @ExceptionHandler({MethodArgumentNotValidException.class})
     @ResponseBody
-    public Result handleBindException(MethodArgumentNotValidException ex) {
+    public RestfulResult handleBindException(MethodArgumentNotValidException ex) {
         RestfulResult errorResult = new RestfulResult(400, "Bad Request", "");
         StringBuilder msg = new StringBuilder();
         ex.getBindingResult().getAllErrors().forEach((e) -> {
@@ -54,22 +55,22 @@ public class GlobalExceptionResolver {
     @ExceptionHandler(NotFoundException.class)
     @ResponseBody
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
-    public Result notFoundExceptionHandle(NotFoundException e) {
-        return new Result(404, e.getMessage(), null, null);
+    public RestfulResult notFoundExceptionHandle(NotFoundException e) {
+        return new RestfulResult(StatusCode.NOT_FOUND, e.getMessage(), null, null);
     }
 
     @ExceptionHandler(ForbiddenException.class)
     @ResponseBody
     @ResponseStatus(value = HttpStatus.FORBIDDEN)
-    public Result forbiddenExceptionHandle(ForbiddenException e) {
-        return new Result(403, e.getMessage(), null, null);
+    public RestfulResult forbiddenExceptionHandle(ForbiddenException e) {
+        return new RestfulResult(StatusCode.NO_PRIVILEGE, e.getMessage(), null, null);
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseBody
     @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
-    public Result serverExceptionHandle(Exception e) {
+    public RestfulResult serverExceptionHandle(Exception e) {
         e.printStackTrace();
-        return new Result(500, "Internal Server Error", null, null);
+        return new RestfulResult(StatusCode.HTTP_FAILURE, "Internal Server Error", null, null);
     }
 }
