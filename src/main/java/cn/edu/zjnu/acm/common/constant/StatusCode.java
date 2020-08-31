@@ -13,4 +13,6 @@ public interface StatusCode {
     int NEED_LOGIN = 401;
 
     int NO_PRIVILEGE = 403;
+
+    int REQUEST_ERROR = 400;
 }

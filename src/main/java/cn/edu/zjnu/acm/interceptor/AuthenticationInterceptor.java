@@ -60,7 +60,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         }
         // 从 request header 中获取当前 token
         String authentication = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel;
+        TokenModel tokenModel = null;
         try{
             tokenModel = tokenManager.getToken(Base64Util.decodeData(authentication));
         }

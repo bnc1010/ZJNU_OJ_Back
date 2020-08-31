@@ -98,7 +98,7 @@ public class UserService {
     }
 
     public void updateUserInfo(User user) {
-        int st = userRepository.updateUser(user.getId(), user.getName(), user.getPassword(), user.getEmail(), user.getIntro());
+        int st = userRepository.updateUser(user.getId(), user.getName(), user.getPassword(), user.getEmail(), user.getIntro(), user.getAvatar());
         if (st == 0){
             throw new CommonException("更新失败");
         }

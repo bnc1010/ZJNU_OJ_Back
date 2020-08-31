@@ -16,6 +16,7 @@ public class UserVO {
     private String salt;
     private int level;
     private String token;
+    private String avatar;
     private long [] userIds;
     private long [] roleIds;
 

@@ -1,11 +1,16 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.authorization.manager.TokenManager;
+import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.constant.Constants;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
+import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.entity.ImageLog;
 import cn.edu.zjnu.acm.entity.User;
-import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.repo.logs.ImageLogRepository;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Data;
+import cn.edu.zjnu.acm.service.UserService;
+import cn.edu.zjnu.acm.util.RestfulResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
@@ -15,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.*;
 import java.time.Instant;
 
@@ -23,13 +27,16 @@ import java.time.Instant;
 @RestController
 @RequestMapping("/api/media")
 public class MediaController {
-    private final HttpSession session;
     private final ImageLogRepository imageLogRepository;
     private final String saveDir = "/onlinejudge/media/";
+    private final TokenManager tokenManager;
+    private final UserService userService;
+    private final long MAX_SIZE = 10 * 1024 * 1024; //最大10M
 
-    public MediaController(HttpSession session, ImageLogRepository imageLogRepository) {
-        this.session = session;
+    public MediaController(ImageLogRepository imageLogRepository, TokenManager tokenManager, UserService userService) {
         this.imageLogRepository = imageLogRepository;
+        this.tokenManager = tokenManager;
+        this.userService = userService;
     }
 
     @PostConstruct
@@ -51,21 +58,20 @@ public class MediaController {
     }
 
     @PostMapping("/upload")
-    public ImageUploadResponse uploadImage(@RequestParam("editormd-image-file") MultipartFile multipartFile, HttpServletRequest request) {
-        ImageUploadResponse imgResponse = new ImageUploadResponse();
-        imgResponse.setSuccess(0);
+    public RestfulResult uploadImage(@RequestParam("file") MultipartFile multipartFile, HttpServletRequest request) {
         if (multipartFile.isEmpty() || StringUtils.isEmpty(multipartFile.getOriginalFilename())) {
-            imgResponse.setMessage("image is empty");
-            return imgResponse;
+            return new RestfulResult(StatusCode.NOT_FOUND, "no image");
         }
-        User user = (User) session.getAttribute("currentUser");
-        if (user == null) {
-            imgResponse.setMessage("Need to login");
-            return imgResponse;
+        if (multipartFile.getSize() > MAX_SIZE){
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "too big");
         }
         String filePath;
         String md5;
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        User user = null;
         try {
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            user = userService.getUserById(tokenModel.getUserId());
             md5 = DigestUtils.md5DigestAsHex(multipartFile.getInputStream());
             filePath = saveDir + md5;
             File saveFile = new File(filePath);
@@ -74,20 +80,16 @@ public class MediaController {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            imgResponse.setMessage("Internal error");
-            return imgResponse;
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "error");
         }
         ImageLog imageLog = new ImageLog(user, request.getRemoteAddr(), filePath, multipartFile.getSize(), "/api/media/" + md5, Instant.now());
         imageLog.saveLog(imageLogRepository);
-
-        imgResponse.setUrl("/api/media/" + md5);
-        imgResponse.setSuccess(1);
-        imgResponse.setMessage("success");
-        return imgResponse;
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", "/api/media/" + md5);
     }
 
+    @IgnoreSecurity
     @GetMapping("/{filename}")
-    public void downloadImage(@PathVariable(value = "filename") String filename, HttpServletResponse response) {
+    public RestfulResult downloadImage(@PathVariable(value = "filename") String filename, HttpServletResponse response) {
         File img = new File(saveDir + filename);
         if (img.exists()) {
             byte[] buffer = new byte[4096];
@@ -102,21 +104,11 @@ public class MediaController {
                 stream.close();
             } catch (IOException e) {
                 e.printStackTrace();
-                throw new NotFoundException();
+                return new RestfulResult(StatusCode.HTTP_FAILURE, "error");
             }
         } else {
-            throw new NotFoundException();
+            return new RestfulResult(StatusCode.NOT_FOUND, "not found");
         }
-    }
-
-    @Data
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    static class ImageUploadResponse {
-        Integer success = 0;
-        String url = null;
-        String message = null;
-
-        public ImageUploadResponse() {
-        }
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
     }
 }

@@ -71,6 +71,9 @@ public class DMZController {
         userVO.setId(user.getId());
         userVO.setName(user.getName());
         userVO.setUsername(user.getUsername());
+        userVO.setAvatar(user.getAvatar());
+        userVO.setEmail(user.getEmail());
+        userVO.setIntro(user.getIntro());
         userVO.setToken(Base64Util.encodeData(token.getToken()));
         restfulResult.setData(userVO);
         return restfulResult;

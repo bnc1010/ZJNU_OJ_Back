@@ -1,5 +1,10 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.authorization.manager.TokenManager;
+import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.constant.Constants;
+import cn.edu.zjnu.acm.common.constant.StatusCode;
+import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.common.exception.NeedLoginException;
 import cn.edu.zjnu.acm.common.exception.NotFoundException;
@@ -7,7 +12,9 @@ import cn.edu.zjnu.acm.service.ProblemService;
 import cn.edu.zjnu.acm.service.SolutionService;
 import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.PageHolder;
+import cn.edu.zjnu.acm.util.RestfulResult;
 import cn.edu.zjnu.acm.util.UserGraph;
+import com.sun.xml.bind.v2.runtime.unmarshaller.Intercepter;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,6 +25,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.constraints.Email;
@@ -25,10 +33,7 @@ import javax.validation.constraints.Size;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/user")
@@ -36,16 +41,16 @@ public class UserSpaceController {
     private final UserService userService;
     private final SolutionService solutionService;
     private final ProblemService problemService;
-    private final HttpSession session;
+    private final TokenManager tokenManager;
 
     @Autowired
     RedisTemplate redisTemplate;
 
-    public UserSpaceController(UserService userService, SolutionService solutionService, ProblemService problemService, HttpSession session) {
+    public UserSpaceController(UserService userService, SolutionService solutionService, ProblemService problemService, TokenManager tokenManager) {
         this.userService = userService;
         this.solutionService = solutionService;
         this.problemService = problemService;
-        this.session = session;
+        this.tokenManager = tokenManager;
     }
 
     @GetMapping("/{uid:[0-9]+}")
@@ -89,31 +94,70 @@ public class UserSpaceController {
         return userGraph;
     }
 
-    @PostMapping("/edit/{uid:[0-9]+}")
-    public String registerUser(@RequestBody UpdateUser updateUser,
-                               @PathVariable(value = "uid") Long uid) {
-        User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser == null) throw new NeedLoginException();
-        if (currentUser.getId() != uid) throw new NotFoundException();
-        User user = userService.getUserById(uid);
+    @PostMapping("/edit")
+    public RestfulResult editUser(@RequestBody UpdateUser updateUser, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        User user  = null;
+        try{
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            user = userService.getUserById(tokenModel.getUserId());
+        }
+        catch (Exception e){
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "request error");
+        }
         if (!userService.checkPassword(updateUser.getOldpassword(), user.getPassword()))
-            return "Old Password Wrong";
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "Old Password Wrong");
         user.setPassword(updateUser.getPassword());
         user.setIntro(updateUser.getIntro());
         user.setEmail(updateUser.getEmail());
         user.setName(updateUser.getName());
+        user.setAvatar(updateUser.getAvatar());
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         user.setPassword(encoder.encode(user.getPassword()));
-        userService.updateUserInfo(user);
-        return "success";
+        try {
+            userService.updateUserInfo(user);
+        }
+        catch (Exception e){
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
+        }
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
+    }
+
+    @PostMapping("/avatar")
+    public RestfulResult changeAvatar(@RequestBody UpdateUser updateUser, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        User user  = null;
+        try{
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            user = userService.getUserById(tokenModel.getUserId());
+        }
+        catch (Exception e){
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "request error");
+        }
+        user.setAvatar(updateUser.getAvatar());
+        try {
+            userService.updateUserInfo(user);
+        }
+        catch (Exception e){
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
+        }
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
     }
 
     @GetMapping("/list")
-    public Map userList(@RequestParam(value = "page", defaultValue = "0") int page) {
+    public RestfulResult userList(@RequestParam(value = "page", defaultValue = "0") int page, HttpServletRequest request) {
         final int SIZE = 50;
         page = Math.max(0, page);
         List<User> userList = userService.userList();
-        User currentUser = (User) session.getAttribute("currentUser");
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        User currentUser  = null;
+        try{
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            currentUser = userService.getUserById(tokenModel.getUserId());
+        }
+        catch (Exception e){
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "request error");
+        }
         userList.sort((o1, o2) -> (o1.getUserProfile().getScore() - o2.getUserProfile().getScore()) * -1);
         RankUser cuser = null;
         List<RankUser> users = getRankUsers(userList);
@@ -127,7 +171,7 @@ public class UserSpaceController {
         Map<String, Object> map = new HashMap<>();
         map.put("page", pageHolder);
         map.put("userself", cuser);
-        return map;
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", map);
     }
 
     public List<RankUser> getRankUsers(List<User> userList) {
@@ -176,6 +220,8 @@ public class UserSpaceController {
         @Email
         @Size(min = 4, max = 200)
         String email;
+        @Size(max = 100)
+        String avatar;
     }
 
     @Data
@@ -200,24 +246,5 @@ public class UserSpaceController {
             this.submitted = submitted;
             this.rank = rank;
         }
-    }
-}
-
-@Controller
-@RequestMapping("/user")
-class UserSpaceViewController {
-    @GetMapping("/{uid:[0-9]+}")
-    public String showUser() {
-        return "user/userspace";
-    }
-
-    @GetMapping("/edit/{uid:[0-9]+}")
-    public String editUser() {
-        return "user/update_user";
-    }
-
-    @GetMapping("/standing")
-    public String userStanding() {
-        return "user/standing";
     }
 }
