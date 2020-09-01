@@ -138,16 +138,18 @@ public class DMZController {
     @ApiOperation(value = "用户身份", notes = "参数：token")
     @RequestMapping(value = "/userinfo", method = RequestMethod.POST)
     @ResponseBody
-    public RestfulResult userInfo(@RequestBody UserVO requestUser){
+    public RestfulResult userInfo(@RequestBody UserVO requestUser, HttpServletRequest request){
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try {
-            TokenModel token = redisTokenManager.getToken(Base64Util.decodeData(requestUser.getToken()));
+            TokenModel token = redisTokenManager.getToken(Base64Util.decodeData(tk));
             List roles = authorityManager.getRoleByToken(token.getRoleCode());
             restfulResult.setData(roles);
         } catch (Exception e) {
+            e.printStackTrace();
             restfulResult.setCode(StatusCode.HTTP_FAILURE);
-            restfulResult.setMessage("Logout failed!");
-            log.info("遇到未知错误，退出失败！用户参数：" + requestUser.toString());
+            restfulResult.setMessage("get info failed");
+            log.info("遇到未知错误，！用户参数：" + requestUser.toString());
         }
         return restfulResult;
     }

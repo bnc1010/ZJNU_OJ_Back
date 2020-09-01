@@ -107,13 +107,14 @@ public class UserSpaceController {
         }
         if (!userService.checkPassword(updateUser.getOldpassword(), user.getPassword()))
             return new RestfulResult(StatusCode.REQUEST_ERROR, "Old Password Wrong");
-        user.setPassword(updateUser.getPassword());
+        if (updateUser.getPassword() != null && updateUser.getPassword().length() > 0){
+            user.setPassword(updateUser.getPassword());
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+            user.setPassword(encoder.encode(user.getPassword()));
+        }
         user.setIntro(updateUser.getIntro());
         user.setEmail(updateUser.getEmail());
         user.setName(updateUser.getName());
-        user.setAvatar(updateUser.getAvatar());
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        user.setPassword(encoder.encode(user.getPassword()));
         try {
             userService.updateUserInfo(user);
         }
@@ -145,8 +146,8 @@ public class UserSpaceController {
     }
 
     @GetMapping("/list")
-    public RestfulResult userList(@RequestParam(value = "page", defaultValue = "0") int page, HttpServletRequest request) {
-        final int SIZE = 50;
+    public RestfulResult userList(@RequestParam(value = "page", defaultValue = "0") int page,
+                                  @RequestParam(value = "pagesize", defaultValue = "0") int pagesize,HttpServletRequest request) {
         page = Math.max(0, page);
         List<User> userList = userService.userList();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -162,12 +163,12 @@ public class UserSpaceController {
         RankUser cuser = null;
         List<RankUser> users = getRankUsers(userList);
         for (RankUser ru : users) {
-            if (ru.getId() == currentUser.getId()) {
+            if (ru.getId().equals(currentUser.getId())) {
                 cuser = ru;
                 break;
             }
         }
-        PageHolder pageHolder = new PageHolder(users, PageRequest.of(page, SIZE));
+        PageHolder pageHolder = new PageHolder(users, PageRequest.of(page, pagesize));
         Map<String, Object> map = new HashMap<>();
         map.put("page", pageHolder);
         map.put("userself", cuser);
