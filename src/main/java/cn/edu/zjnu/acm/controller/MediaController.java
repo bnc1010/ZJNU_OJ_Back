@@ -25,6 +25,7 @@ import java.time.Instant;
 
 @Slf4j
 @RestController
+@CrossOrigin
 @RequestMapping("/api/media")
 public class MediaController {
     private final ImageLogRepository imageLogRepository;
@@ -63,7 +64,7 @@ public class MediaController {
             return new RestfulResult(StatusCode.NOT_FOUND, "no image");
         }
         if (multipartFile.getSize() > MAX_SIZE){
-            return new RestfulResult(StatusCode.REQUEST_ERROR, "too big");
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "image too big");
         }
         String filePath;
         String md5;

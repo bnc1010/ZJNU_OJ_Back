@@ -49,7 +49,6 @@ import java.util.concurrent.Future;
 @RestController
 @RequestMapping("/api/ojadmin")
 public class AdminController {
-    public static final int PAGE_SIZE = 50;
     private static final ExecutorService threadPool = Executors.newFixedThreadPool(StatusCode.HTTP_SUCCESS);
     private final UserProblemRepository userProblemRepository;
     private final ProblemService problemService;

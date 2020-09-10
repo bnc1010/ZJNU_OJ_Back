@@ -2,6 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.common.ve.TokenVO;
@@ -16,16 +17,13 @@ import cn.edu.zjnu.acm.repo.contest.ContestProblemRepository;
 import cn.edu.zjnu.acm.service.*;
 import cn.edu.zjnu.acm.util.Rank;
 import cn.edu.zjnu.acm.util.RestfulResult;
-import cn.edu.zjnu.acm.util.Result;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import javax.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -39,7 +37,6 @@ import java.util.*;
 @RequestMapping("/api/contest")
 public class ContestController {
     private static final int PAGE_SIZE = 30;
-    private final HttpSession session;
     private final UserService userService;
     private final ProblemService problemService;
     private final SolutionService solutionService;
@@ -48,9 +45,9 @@ public class ContestController {
     private final ContestProblemRepository contestProblemRepository;
     private final TeamService teamService;
     private final TokenManager tokenManager;
+    private final RedisService redisService;
 
-    public ContestController(HttpSession session, UserService userService, ProblemService problemService, SolutionService solutionService, ContestService contestService, JudgeService judgeService, ContestProblemRepository contestProblemRepository, TeamService teamService, CommentRepository commentRepository, TokenManager tokenManager) {
-        this.session = session;
+    public ContestController(UserService userService, ProblemService problemService, SolutionService solutionService, ContestService contestService, JudgeService judgeService, ContestProblemRepository contestProblemRepository, TeamService teamService, CommentRepository commentRepository, TokenManager tokenManager, RedisService redisService) {
         this.userService = userService;
         this.problemService = problemService;
         this.solutionService = solutionService;
@@ -59,6 +56,7 @@ public class ContestController {
         this.contestProblemRepository = contestProblemRepository;
         this.teamService = teamService;
         this.tokenManager = tokenManager;
+        this.redisService = redisService;
     }
 
     @GetMapping("")
@@ -105,18 +103,21 @@ public class ContestController {
 //        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", c);
 //    }
 
-    @GetMapping("/gate/{cid:[0-9]+}")
-    public RestfulResult contestReady(@PathVariable("cid") Long cid, @RequestParam("token") String token) {
+    @PostMapping("/gate/{cid:[0-9]+}")
+    public RestfulResult contestReady(@PathVariable("cid") Long cid, HttpServletRequest request, @RequestBody ContestVO contestVO) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try{
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             User user = userService.getUserById(tokenModel.getUserId());
-            if (user == null)
-                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
-            Contest contest = contestService.getContestById(cid);
+            Contest contest = contestService.getContestByIdTwoType(cid, false);
             if (contest == null)
                 return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
+            if (contest.getPrivilege().equals("private") && (contestVO.getPassword() == null || contestVO.getPassword().length()==0))
+                return new RestfulResult(StatusCode.REQUEST_ERROR, "need password");
+            if (contest.getPrivilege().equals("private") && (contestVO.getPassword() == null || !contestVO.getPassword().equals(contest.getPassword())))
+                return new RestfulResult(StatusCode.REQUEST_ERROR, "password error");
             if (!contest.isStarted())
-                return new RestfulResult(StatusCode.HTTP_SUCCESS, "not started");
+                return new RestfulResult(StatusCode.REQUEST_ERROR, "not started", contest.getNormalStartTime());
             if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
                 if (contest.getPrivilege().equals(Contest.TEAM)) {
                     Team team = contest.getTeam();
@@ -166,9 +167,10 @@ public class ContestController {
 
     @GetMapping("/background/{cid:[0-9]+}")
     public RestfulResult getUpdateContestInfo(@PathVariable("cid") Long cid,
-                                        @RequestParam("token") String token) {
+                                        HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try{
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             User user = userService.getUserById(tokenModel.getUserId());
             if (user == null)
                 return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
@@ -194,13 +196,14 @@ public class ContestController {
 
     @PostMapping("/background/{cid:[0-9]+}")
     public RestfulResult updateContest(@PathVariable("cid") Long cid,
-                                @RequestBody ContestVO contestVO) {
+                                @RequestBody ContestVO contestVO, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try{
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(contestVO.getToken()));
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             User user = userService.getUserById(tokenModel.getUserId());
             if (user == null)
                 return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
-            Contest contest = contestService.getContestById(cid);
+            Contest contest = contestService.getContestByIdTwoType(cid, false);
             if (contest == null) {
                 return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
             }
@@ -240,57 +243,54 @@ public class ContestController {
         return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
     }
 
-    @GetMapping("/{cid:[0-9]+}")
-    public Contest getContestDetail(@PathVariable("cid") Long cid,
-                                    @RequestParam(value = "password", defaultValue = "") String password) {
-        Contest c = contestService.getContestById(cid, false);
+    @PostMapping("/{cid:[0-9]+}")
+    public RestfulResult getContestDetail(@PathVariable("cid") Long cid,
+                                    @RequestBody ContestVO contestVO, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        User user = userService.getUserById(tokenModel.getUserId());
+        Contest c = contestService.getContestByIdTwoType(cid, true);
         if (c == null)
-            throw new NotFoundException();
-        Contest scontest = (Contest) session.getAttribute("contest" + c.getId());
-        if (scontest == null || scontest.getId() != c.getId() || !c.isStarted()) {
-            if (!c.isStarted() ||
-                    (c.getPassword() != null && c.getPassword().length() > 0 &&
-                            c.getPrivilege().equals("private") &&
-                            !c.getPassword().equals(password))) {
-                c.clearLazyRoles();
-                c.setProblems(null);
-                c.setSolutions(null);
-                c.setContestComments(null);
-                c.setCreator(null);
-                c.setFreezeRank(null);
-                c.setCreateTime(null);
-                c.setPassword("password");
-                return c;
-            } else {
-                session.setAttribute("contest" + c.getId(), c);
-            }
-        }
-        try {
-            c = contestService.getContestById(cid, true);
+            return new RestfulResult(StatusCode.NOT_FOUND, "contest not found");
+        boolean status = contestService.checkUserInContest(user.getId(), cid);
+        if (!status) {
+            c.clearLazyRoles();
+            c.setProblems(null);
             c.setSolutions(null);
+            c.setContestComments(null);
             c.setCreator(null);
-            c.setCreateTime(null);
-            c.setPassword(null);
             c.setFreezeRank(null);
             c.setCreateTime(null);
-            c.setContestComments(null);
+            c.setPassword(null);
             c.setTeam(null);
-            for (ContestProblem cp : c.getProblems()) {
-                Problem p = cp.getProblem();
-                p.setId(null);
-                p.setAccepted(null);
-                p.setSubmitted(null);
-                p.setAccepted(null);
-                p.setTags(null);
-                p.setTitle(null);
-                p.setScore(null);
-                p.setSource(null);
+            if (!c.isStarted() || (c.getPassword() != null && c.getPassword().length() > 0 && c.getPrivilege().equals("private") && !c.getPassword().equals(contestVO.getPassword()))){
+
+                if (!c.isStarted()){ //比赛没开始
+                    return new RestfulResult(StatusCode.REQUEST_ERROR, "contest not started", c);
+                }
+                else{
+                    return new RestfulResult(StatusCode.REQUEST_ERROR, "password error", c);
+                }
             }
-            c.getProblems().sort((a, b) -> (int) (a.getTempId() - b.getTempId()));
-        } catch (Exception e) {
-            throw new NotFoundException();
+            try {
+                for (ContestProblem cp : c.getProblems()) {
+                    Problem p = cp.getProblem();
+                    p.setId(null);
+                    p.setAccepted(null);
+                    p.setSubmitted(null);
+                    p.setAccepted(null);
+                    p.setTags(null);
+                    p.setTitle(null);
+                    p.setScore(null);
+                    p.setSource(null);
+                }
+                c.getProblems().sort((a, b) -> (int) (a.getTempId() - b.getTempId()));
+                contestService.storeContestInRedis(c);
+            } catch (Exception e) {
+                return new RestfulResult(StatusCode.HTTP_FAILURE, "error");
+            }
         }
-        return c;
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", c);
     }
 
     @PostMapping("/submit/{pid:[0-9]+}/{cid:[0-9]+}")
@@ -298,36 +298,36 @@ public class ContestController {
                                          @PathVariable("cid") Long cid,
                                          HttpServletRequest request,
                                          @RequestBody ProblemController.SubmitCodeObject submitCodeObject) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         log.info("Submit:" + Date.from(Instant.now()));
-        String tk = submitCodeObject.getToken();
         TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
         String source = submitCodeObject.getSource();
-        boolean share = submitCodeObject.isShare();
+        boolean share = false;
         String language = submitCodeObject.getLanguage();
         String _temp = problemService.checkSubmitFrequency(tokenModel.getUserId(), source);
         if (_temp != null)
-            new Result(StatusCode.NO_PRIVILEGE, _temp, null , null);
-        @NotNull User user;
+            new RestfulResult(StatusCode.NO_PRIVILEGE, _temp, null , null);
+        User user;
         try {
-            user = (User) session.getAttribute("currentUser");
-            if (userService.getUserById(user.getId()) == null) {// user doesn't login
-                throw new NeedLoginException();
+            user = userService.getUserById(tokenModel.getUserId());
+            if (user == null) {// user doesn't login
+                return new RestfulResult(StatusCode.NEED_LOGIN, "need login");
             }
         } catch (Exception e) {
-            throw new NeedLoginException();
+            return new RestfulResult(StatusCode.NEED_LOGIN, "need login");
         }
         try {
-            Contest contest = contestService.getContestById(cid);
-            Contest scontest = (Contest) session.getAttribute("contest" + cid);
-            if (scontest == null || scontest.getId() != contest.getId()) {
-                return new RestfulResult(403, "Need attendance!", null , null);
+            Contest contest = contestService.getContestByIdTwoType(cid, true);
+            boolean status = contestService.checkUserInContest(user.getId(), cid);
+            if (!status) {
+                return new RestfulResult(StatusCode.REQUEST_ERROR, "Need attendance!");
             }
             if (contest.isEnded() || !contest.isStarted()) {
-                return new RestfulResult(403, "The contest is not Running!", null , null);
+                return new RestfulResult(StatusCode.REQUEST_ERROR, "The contest is not Running!", null , null);
             }
             ContestProblem cproblem = contestProblemRepository.findByContestAndTempId(contest, pid).orElse(null);
             if (cproblem == null) {
-                return new RestfulResult(404, "Problem Not Exist", null , null);
+                return new RestfulResult(StatusCode.NOT_FOUND, "Problem Not Exist", null , null);
             }
             Problem problem = cproblem.getProblem();
             Solution solution = new Solution(user, problem, language, source, request.getRemoteAddr(), share);
@@ -337,18 +337,20 @@ public class ContestController {
             judgeService.submitCode(solution);
             return RestfulResult.successResult();
         } catch (Exception e) {
-            throw new NotFoundException();
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "error");
         }
     }
 
     @PostMapping("/comments/post/{cid:[0-9]+}")
-    public String postComments(@PathVariable(value = "cid") Long cid, @RequestBody CommentPost commentPost) {
+    public String postComments(@PathVariable(value = "cid") Long cid, @RequestBody CommentPost commentPost, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
         try {
             if (commentPost.replyText.length() < 4) return "too short";
-            User user = (User) session.getAttribute("currentUser");
+            User user = userService.getUserById(tokenModel.getUserId());
             if (user == null) return "need login";
             ContestComment father = contestService.getFatherComment(commentPost.getReplyId());
-            @NotNull Contest contest = contestService.getContestById(cid);
+            @NotNull Contest contest = contestService.getContestByIdTwoType(cid, false);
             if (!contest.isStarted() || contest.isEnded())
                 return "contest is not running";
             ContestComment contestComment = new ContestComment(user, commentPost.replyText, father, contest);
@@ -376,12 +378,14 @@ public class ContestController {
 
     @GetMapping("/status/{cid:[0-9]+}")
     public Page<Solution> getUserSolutions(@PathVariable("cid") Long cid,
-                                           @RequestParam(value = "page", defaultValue = "0") int page) {
+                                           @RequestParam(value = "page", defaultValue = "0") int page, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
         try {
             @NotNull Contest contest = contestService.getContestById(cid, true);
             if (!contest.isStarted())
                 throw new NotFoundException();
-            @NotNull User user = (User) session.getAttribute("currentUser");
+            @NotNull User user = userService.getUserById(tokenModel.getUserId());
 //            User user = userService.getUserById(5l); // test
             @NotNull Page<Solution> solutions = solutionService.getSolutionsOfUserInContest(page, PAGE_SIZE, user, contest);
             Map<Long, ContestProblem> cpmap = new HashMap<>();

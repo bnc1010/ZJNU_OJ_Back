@@ -63,7 +63,7 @@ public class UserSpaceController {
 
     @GetMapping("/pie/{uid:[0-9]+}")
     @Cacheable(value = "usergraph", key = "#uid")
-    public UserGraph getUserGraph(@PathVariable(value = "uid") Long uid) {
+    public RestfulResult getUserGraph(@PathVariable(value = "uid") Long uid) {
         User user = userService.getUserById(uid);
         if (user == null)
             throw new NotFoundException();
@@ -91,7 +91,7 @@ public class UserSpaceController {
         userGraph.getRadar().setGeometry(problemService.countSolveProblemByTag(user,
                 problemService.getTagByName("计算几何"), true));
         userGraph.getRadar().init();
-        return userGraph;
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", userGraph);
     }
 
     @PostMapping("/edit")

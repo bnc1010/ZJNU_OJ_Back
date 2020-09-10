@@ -24,12 +24,14 @@ public class ContestService {
     private final ContestProblemRepository contestProblemRepository;
     private final SolutionService solutionService;
     private final ContestCommentRepository contestCommentRepository;
+    private final RedisService redisService;
 
-    public ContestService(ContestRepository contestRepository, ContestProblemRepository contestProblemRepository, SolutionService solutionService, CommentRepository commentRepository, ContestCommentRepository contestCommentRepository) {
+    public ContestService(RedisService redisService, ContestRepository contestRepository, ContestProblemRepository contestProblemRepository, SolutionService solutionService, CommentRepository commentRepository, ContestCommentRepository contestCommentRepository) {
         this.contestRepository = contestRepository;
         this.contestProblemRepository = contestProblemRepository;
         this.solutionService = solutionService;
         this.contestCommentRepository = contestCommentRepository;
+        this.redisService = redisService;
     }
 
     public Page<Contest> getContestPage(int page, int size, String title) {
@@ -55,8 +57,16 @@ public class ContestService {
     }
 
 
-    public Contest getContestById(Long id) {
-        return getContestById(id, false);
+    public Contest getContestByIdTwoType(Long id, boolean isAllFields) {
+        Contest contest = redisService.getContest(id);
+        if (contest == null){
+            contest = getContestById(id, isAllFields);
+        }
+        return contest;
+    }
+
+    public void storeContestInRedis(Contest contest){
+        redisService.insertContest(contest);
     }
 
     @Transactional
@@ -104,4 +114,14 @@ public class ContestService {
     public void deleteContest(Contest contest) {
         contestRepository.delete(contest);
     }
+
+    public boolean checkUserInContest(Long uId, Long cId){
+        return redisService.isUserInContest(uId, cId);
+    }
+
+    public void insertUserToContest(Long uId, Long cId){
+        redisService.insertUserToContest(uId, cId);
+    }
+
+
 }

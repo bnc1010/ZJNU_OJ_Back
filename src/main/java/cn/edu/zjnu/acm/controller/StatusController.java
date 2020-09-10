@@ -138,9 +138,10 @@ public class StatusController {
     }
 
     @PostMapping("/share/{id:[0-9]+}")
-    public RestfulResult setShare(@PathVariable("id") Long id, @RequestBody TokenVO tokenVO) {
+    public RestfulResult setShare(@PathVariable("id") Long id, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try {
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tokenVO.getToken()));
+            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             if (tokenModel == null){
                 throw new NotFoundException();
             }

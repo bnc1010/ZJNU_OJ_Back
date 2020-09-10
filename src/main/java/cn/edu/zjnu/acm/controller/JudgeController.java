@@ -8,6 +8,7 @@ import cn.edu.zjnu.acm.service.JudgeService;
 import cn.edu.zjnu.acm.service.SolutionService;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +17,7 @@ import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 
 @Slf4j
+@CrossOrigin
 @RestController
 public class JudgeController {
     private final JudgeService judgeService;
@@ -29,6 +31,8 @@ public class JudgeController {
     @IgnoreSecurity
     @PostMapping("/judge/callback")
     public String judgeCallback(@RequestBody JudgeController.JudgeCallback callback) {
+        System.out.println("*******************************");
+        System.out.println(callback.toString());
         try {
             log.info(callback.toString());
             Solution solution = solutionService.getSolutionById(callback.getSubmit_id());
