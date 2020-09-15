@@ -124,7 +124,7 @@ public class Rank implements Serializable {
                 return this;
             submit += 1;
             if (s.getResult().equals(Solution.AC)) {
-                time = Duration.between(s.getContest().getStartTime(), s.getSubmitTime()).toMinutes();
+                time = Duration.between(s.getContest().getStartTime(), s.getSubmitTime()).getSeconds();
                 accepted = true;
                 if (!problemHasAc.get(pid - 1)) {
                     first = true;
@@ -154,6 +154,9 @@ public class Rank implements Serializable {
             this.user.setIntro(null);
             this.user.setPassword(null);
             this.user.setEmail(null);
+            this.user.setSalt(null);
+            this.user.setLevel(-1);
+            this.user.setAvatar(null);
             this.user.setUserProfile(null);
             this.user.setCreatetime(null);
             level = 0;

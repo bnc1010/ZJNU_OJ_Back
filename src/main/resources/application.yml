@@ -46,7 +46,6 @@ spring:
       strategy:
         content:
           enabled: true
-
 logging:
   file:
     max-size: 50MB
@@ -58,52 +57,53 @@ logging:
     org.hibernate: ERROR
     com.zaxxer.hikari: WARN
     org.apache.catalina: ERROR
-
 onlinejudge:
   judgerhost:
-#    - ${JUDGER_SERVICE}
-      - http://localhost:12345/judge
-  #    - http://localhost:8002/judge
-  #    - http://localhost:8003/judge
-  #    - http://localhost:8004/judge
-  #    - http://localhost:6000/judge
+  - http://localhost:12345/judge
   c:
+    memory_limit_check_only: '0'
+    run_command: ./main
     src: main.c
     seccomp_rule: c_cpp
-    run_command: ./main
-    compile_command: /usr/bin/gcc -DONLINE_JUDGE -fno-tree-ch -O2 -Wall -std=c99 main.c -lm -o main
-    memory_limit_check_only: 0
+    compile_command: /usr/bin/gcc -DONLINE_JUDGE -fno-tree-ch -O2 -Wall -std=c99 main.c
+      -lm -o main
   cpp:
+    memory_limit_check_only: '0'
+    run_command: ./main
     src: main.cpp
     seccomp_rule: c_cpp
-    run_command: ./main
-    compile_command: /usr/bin/g++ -DONLINE_JUDGE -fno-tree-ch -O2 -Wall -std=c++14 main.cpp -lm -o main
-    memory_limit_check_only: 0
+    compile_command: /usr/bin/g++ -DONLINE_JUDGE -fno-tree-ch -O2 -Wall -std=c++14
+      main.cpp -lm -o main
   go:
-    src: main.go
-    compile_command: /usr/bin/gccgo -g -Wall main.go -o main
+    memory_limit_check_only: '0'
     run_command: ./main
-    memory_limit_check_only: 0
+    src: main.go
+    seccomp_rule: ''
+    compile_command: /usr/bin/gccgo -g -Wall main.go -o main
   java:
+    memory_limit_check_only: '1'
+    run_command: /usr/bin/java -Djava.security.manager -Dfile.encoding=UTF-8 -Djava.awt.headless=true
+      Main
     src: Main.java
-    run_command: /usr/bin/java -Djava.security.manager -Dfile.encoding=UTF-8 -Djava.awt.headless=true Main
+    seccomp_rule: ''
     compile_command: /usr/bin/javac Main.java -encoding UTF8
-    memory_limit_check_only: 1
   python2:
-    src: main.py
+    memory_limit_check_only: '0'
     run_command: /usr/bin/python main.pyc
-    compile_command: /usr/bin/python -m py_compile main.py
-    memory_limit_check_only: 0
-    seccomp_rule: general
-  python3:
     src: main.py
-    run_command: /usr/bin/python3 __pycache__/main.cpython-36.pyc
-    compile_command: /usr/bin/python3 -m py_compile main.py
-    memory_limit_check_only: 0
     seccomp_rule: general
+    compile_command: /usr/bin/python -m py_compile main.py
+  python3:
+    memory_limit_check_only: '0'
+    run_command: /usr/bin/python3 __pycache__/main.cpython-36.pyc
+    src: main.py
+    seccomp_rule: general
+    compile_command: /usr/bin/python3 -m py_compile main.py
   least-score-to-see-others-code: 0
   least-score-to-post-blog: 0
   notice: |
+    # 公告
+
     ## 运行参数
     - C: `gcc -DONLINE_JUDGE -fno-tree-ch -O2 -Wall -std=c99 main.c -lm -o main && ./main`
     - CPP: `g++ -DONLINE_JUDGE -fno-tree-ch -O2 -Wall -std=c++14 main.cpp -lm -o main && ./main `
@@ -173,7 +173,6 @@ onlinejudge:
      - Memory Limit Exceeded (MLE) : 您的程序运行的内存已经超出了这个题目的内存限制。
      - Compilation Error (CE) : 您的程序语法有问题，编译器无法编译。具体的出错信息可以点击链接察看。
      - System Error (SE) : OJ内部出现错误。由于我们的OJ可能存在一些小问题，所以出现这个信息请原谅，同时请及时与管理员联系。
-
 server:
   tomcat:
     max-threads: 2000

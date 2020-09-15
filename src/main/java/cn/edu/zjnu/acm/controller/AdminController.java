@@ -4,14 +4,12 @@ import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.ve.ProblemVO;
 import cn.edu.zjnu.acm.config.Config;
 import cn.edu.zjnu.acm.config.GlobalStatus;
-import cn.edu.zjnu.acm.entity.Teacher;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Contest;
 import cn.edu.zjnu.acm.entity.oj.ContestProblem;
 import cn.edu.zjnu.acm.entity.oj.Problem;
 import cn.edu.zjnu.acm.entity.oj.Tag;
 import cn.edu.zjnu.acm.common.exception.ForbiddenException;
-import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.repo.contest.ContestProblemRepository;
 import cn.edu.zjnu.acm.repo.problem.AnalysisRepository;
 import cn.edu.zjnu.acm.repo.problem.ProblemRepository;
@@ -30,7 +28,6 @@ import io.swagger.annotations.ApiOperation;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,6 +39,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import static cn.edu.zjnu.acm.common.utils.Class2Map.objectToMap;
+import static cn.edu.zjnu.acm.common.utils.YmlUpdateUtil.updateYamlFile;
 
 @Slf4j
 @Api(value = "API - AdminController", description = "管理api")
@@ -83,9 +83,14 @@ public class AdminController {
     }
 
 
+    @GetMapping("/config")
+    public RestfulResult getConfig() {
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", new UpdateConfig(config));
+    }
+
     @ApiOperation(value = "系统设置", notes = "系统设置", produces = "application/json")
     @PostMapping("/config")
-    public String updateConfig(@RequestBody UpdateConfig updateConfig) {
+    public RestfulResult updateConfig(@RequestBody UpdateConfig updateConfig) {
         log.info(updateConfig.toString());
         config.setLeastScoreToSeeOthersCode(updateConfig.getLeastScoreToSeeOthersCode());
         config.setLeastScoreToPostBlog(updateConfig.getLeastScoreToPostBlog());
@@ -97,7 +102,23 @@ public class AdminController {
         config.setPython3(updateConfig.getPython3());
         config.setGo(updateConfig.getGo());
         config.setNotice(updateConfig.getNotice());
-        return "success";
+
+        String [] keys = {"judgerhost", "c", "cpp", "go", "java", "python2", "python3",
+                "least-score-to-see-others-code", "least-score-to-post-blog", "notice"};
+
+        try{
+            Object [] values = {config.getJudgerhost(), objectToMap(config.getC()), objectToMap(config.getCpp()),
+                    objectToMap(config.getGo()), objectToMap(config.getJava()),objectToMap(config.getPython2()),
+                    objectToMap(config.getPython3()), config.getLeastScoreToSeeOthersCode(), config.getLeastScoreToPostBlog(),
+                    config.getNotice()};
+            updateYamlFile("src/main/resources/application.yml", "onlinejudge", keys, values);
+            System.out.println();
+        }
+        catch (IllegalAccessException e){
+            e.printStackTrace();
+        }
+
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
     }
 
 

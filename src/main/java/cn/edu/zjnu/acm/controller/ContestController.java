@@ -36,7 +36,6 @@ import java.util.*;
 @CrossOrigin
 @RequestMapping("/api/contest")
 public class ContestController {
-    private static final int PAGE_SIZE = 30;
     private final UserService userService;
     private final ProblemService problemService;
     private final SolutionService solutionService;
@@ -140,28 +139,28 @@ public class ContestController {
         return contest.getCreator().getId() == currentUser.getId();
     }
 
-    @GetMapping("/background/access/{cid:[0-9]+}")
-    public RestfulResult accessToGetUpdateContestInfo(@PathVariable("cid") Long cid,
-                                              @RequestParam("token") String token) {
-        try{
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
-            User user = userService.getUserById(tokenModel.getUserId());
-            if (user == null)
-                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
-            Contest contest = contestService.getContestById(cid, true);
-            if (contest == null) {
-                return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
-            }
-            if (!isContestCreator(contest, user) || userService.getUserPermission(tokenModel.getPermissionCode(), "a5") != 1) {
-                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied!");
-            }
-            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
-    }
+//    @GetMapping("/background/access/{cid:[0-9]+}")
+//    public RestfulResult accessToGetUpdateContestInfo(@PathVariable("cid") Long cid,
+//                                              @RequestParam("token") String token) {
+//        try{
+//            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
+//            User user = userService.getUserById(tokenModel.getUserId());
+//            if (user == null)
+//                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
+//            Contest contest = contestService.getContestById(cid, true);
+//            if (contest == null) {
+//                return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
+//            }
+//            if (!isContestCreator(contest, user) || userService.getUserPermission(tokenModel.getPermissionCode(), "a5") != 1) {
+//                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied!");
+//            }
+//            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
+//        }
+//        catch (Exception e){
+//            e.printStackTrace();
+//        }
+//        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
+//    }
 
 
 
@@ -317,7 +316,7 @@ public class ContestController {
             return new RestfulResult(StatusCode.NEED_LOGIN, "need login");
         }
         try {
-            Contest contest = contestService.getContestByIdTwoType(cid, true);
+            Contest contest = contestService.getContestByIdTwoType(cid, false);
             boolean status = contestService.checkUserInContest(user.getId(), cid);
             if (!status) {
                 return new RestfulResult(StatusCode.REQUEST_ERROR, "Need attendance!");
@@ -330,6 +329,7 @@ public class ContestController {
                 return new RestfulResult(StatusCode.NOT_FOUND, "Problem Not Exist", null , null);
             }
             Problem problem = cproblem.getProblem();
+
             Solution solution = new Solution(user, problem, language, source, request.getRemoteAddr(), share);
             solution.setContest(contest);
             solution = solutionService.insertSolution(solution);
@@ -337,6 +337,7 @@ public class ContestController {
             judgeService.submitCode(solution);
             return RestfulResult.successResult();
         } catch (Exception e) {
+            e.printStackTrace();
             return new RestfulResult(StatusCode.HTTP_FAILURE, "error");
         }
     }
@@ -378,7 +379,9 @@ public class ContestController {
 
     @GetMapping("/status/{cid:[0-9]+}")
     public Page<Solution> getUserSolutions(@PathVariable("cid") Long cid,
-                                           @RequestParam(value = "page", defaultValue = "0") int page, HttpServletRequest request) {
+                                           @RequestParam(value = "page", defaultValue = "0") int page,
+                                           @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
+                                           HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
         try {
@@ -387,7 +390,7 @@ public class ContestController {
                 throw new NotFoundException();
             @NotNull User user = userService.getUserById(tokenModel.getUserId());
 //            User user = userService.getUserById(5l); // test
-            @NotNull Page<Solution> solutions = solutionService.getSolutionsOfUserInContest(page, PAGE_SIZE, user, contest);
+            @NotNull Page<Solution> solutions = solutionService.getSolutionsOfUserInContest(page, pagesize, user, contest);
             Map<Long, ContestProblem> cpmap = new HashMap<>();
             for (ContestProblem cp : contest.getProblems()) {
                 cpmap.put(cp.getProblem().getId(), cp);
@@ -412,7 +415,7 @@ public class ContestController {
 
     @GetMapping("/ranklist/{cid:[0-9]+}")
     @Cacheable(value = "contestRank", key = "#cid")
-    public Map<String, Object> getRankOfContest(@PathVariable Long cid) {
+    public RestfulResult getRankOfContest(@PathVariable Long cid) {
         try {
             @NotNull Contest contest = contestService.getContestById(cid, true);
             contest.setTeam(null);
@@ -424,11 +427,11 @@ public class ContestController {
             Map<String, Object> result = new HashMap<>();
             result.put("problemsNumber", rank.getProblemsNumber());
             result.put("rows", rank.getRows());
-            return result;
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success",result);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        throw new NotFoundException();
+        return new RestfulResult(StatusCode.NOT_FOUND, "not found");
     }
 
     @PostMapping("/create")
