@@ -1,10 +1,10 @@
 # 在线评测系统
-作者 ZJNU **金明熠**
+作者 ZJNU **金明熠** & **bnc1010**
 
-- 基于Springboot开发，前端jQuery、Vuejs
+- 基于Springboot开发，前端Vue + element，基于vue-element-admin项目
 - [判题服务](https://github.com/jinmingyi1998/JudgerServer)基于青岛大学OJ的[Judger](https://github.com/QingdaoU/Judger "Judger")
 - 多语言支持: `C`, `C++`, `Java`, `Python2`, `Python3`，etc..
-- Markdown & KaTex 支持(基于 [Editor.md](https://github.com/pandao/editor.md)) 
+- Markdown 支持(基于 [mavonEditor](https://github.com/hinesboy/mavonEditor)) 
 
 ## 运行环境及依赖：
 - 服务器系统Linux

@@ -102,7 +102,7 @@ onlinejudge:
   least-score-to-see-others-code: 0
   least-score-to-post-blog: 0
   notice: |
-    # 公告
+    # 公告1
 
     ## 运行参数
     - C: `gcc -DONLINE_JUDGE -fno-tree-ch -O2 -Wall -std=c99 main.c -lm -o main && ./main`

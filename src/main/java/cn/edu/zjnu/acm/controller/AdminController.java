@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +104,21 @@ public class AdminController {
         config.setGo(updateConfig.getGo());
         config.setNotice(updateConfig.getNotice());
 
+        String src = "";
+        File directory = new File("application.yml");
+        if (directory.exists()){
+            src = "application.yml";
+        }
+        else{
+            directory = new File("src/main/resources/application.yml");
+            if (directory.exists()){
+                src = "src/main/resources/application.yml";
+            }
+            else {
+                return new RestfulResult(StatusCode.HTTP_FAILURE, "配置文件请放在正确位置");
+            }
+        }
+        log.info("setting: " + directory.getAbsolutePath());
         String [] keys = {"judgerhost", "c", "cpp", "go", "java", "python2", "python3",
                 "least-score-to-see-others-code", "least-score-to-post-blog", "notice"};
 
@@ -111,8 +127,7 @@ public class AdminController {
                     objectToMap(config.getGo()), objectToMap(config.getJava()),objectToMap(config.getPython2()),
                     objectToMap(config.getPython3()), config.getLeastScoreToSeeOthersCode(), config.getLeastScoreToPostBlog(),
                     config.getNotice()};
-            updateYamlFile("src/main/resources/application.yml", "onlinejudge", keys, values);
-            System.out.println();
+            updateYamlFile(src, "onlinejudge", keys, values);
         }
         catch (IllegalAccessException e){
             e.printStackTrace();
