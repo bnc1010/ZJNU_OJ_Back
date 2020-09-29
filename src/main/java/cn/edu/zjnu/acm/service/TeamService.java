@@ -10,12 +10,13 @@ import cn.edu.zjnu.acm.repo.team.TeamRepository;
 import cn.edu.zjnu.acm.repo.team.TeammateRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 
 @Service
 public class TeamService {
@@ -52,16 +53,19 @@ public class TeamService {
         return team;
     }
 
-    public List<Team> teamsOfUser(User user) {
-        List<Teammate> teammates = teammateRepository.findByUser(user);
+    public Map teamsOfUser(User user, int page, int size) {
+        Page<Teammate> teammates = teammateRepository.findByUser(user, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
         List<Team> teams = new ArrayList<>();
-        for (Teammate tm :
-                teammates) {
+        for (Teammate tm : teammates) {
             tm.getTeam().clearLazyRoles();
             tm.getTeam().hideInfo();
             teams.add(tm.getTeam());
         }
-        return teams;
+        Map map = new HashMap();
+        map.put("teams", teams);
+        map.put("totalElements", teammates.getTotalElements());
+        map.put("totalPages", teammates.getTotalPages());
+        return map;
     }
 
     public Boolean isUserInTeam(User u, Team t) {

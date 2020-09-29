@@ -3,6 +3,7 @@ package cn.edu.zjnu.acm.util;
 public class RestfulResult extends Result {
 
     public static final String SUCCESS = "success";
+    public static final String ERROR = "system error";
 
     public RestfulResult() {
     }

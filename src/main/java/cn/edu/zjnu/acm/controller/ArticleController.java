@@ -151,27 +151,3 @@ public class ArticleController {
         }
     }
 }
-
-@Controller
-@RequestMapping("/forum")
-class ArticleViewController {
-    @GetMapping("")
-    public String listArticle() {
-        return "forum/forumlist";
-    }
-
-    @GetMapping("/{id:[0-9]+}")
-    public String showArticle() {
-        return "forum/show";
-    }
-
-    @GetMapping("/edit/{id:[0-9]+}")
-    public String editArticle() {
-        return "forum/edit";
-    }
-
-    @GetMapping("/post")
-    public String postArticle() {
-        return "forum/post";
-    }
-}

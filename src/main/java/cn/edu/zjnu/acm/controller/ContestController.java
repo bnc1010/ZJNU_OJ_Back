@@ -123,7 +123,7 @@ public class ContestController {
                     if (teamService.isUserInTeam(user, team)) {
                         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
                     } else {
-                        return new RestfulResult(StatusCode.NO_PRIVILEGE, "没有权限");
+                        return new RestfulResult(StatusCode.NO_PRIVILEGE, "这是队伍专属比赛,请加入队伍");
                     }
                 }
             }
@@ -243,15 +243,18 @@ public class ContestController {
     }
 
     @PostMapping("/{cid:[0-9]+}")
-    public RestfulResult getContestDetail(@PathVariable("cid") Long cid,
-                                    @RequestBody ContestVO contestVO, HttpServletRequest request) {
+    public RestfulResult getContestDetail(@PathVariable("cid") Long cid, @RequestBody ContestVO contestVO, HttpServletRequest request) {
+        System.out.println("debug1");
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
         User user = userService.getUserById(tokenModel.getUserId());
         Contest c = contestService.getContestByIdTwoType(cid, true);
+        System.out.println("debug2");
         if (c == null)
             return new RestfulResult(StatusCode.NOT_FOUND, "contest not found");
         boolean status = contestService.checkUserInContest(user.getId(), cid);
+        System.out.println("debug3");
+        System.out.println(status);
         if (!status) {
             c.clearLazyRoles();
             c.setProblems(null);
@@ -263,7 +266,6 @@ public class ContestController {
             c.setPassword(null);
             c.setTeam(null);
             if (!c.isStarted() || (c.getPassword() != null && c.getPassword().length() > 0 && c.getPrivilege().equals("private") && !c.getPassword().equals(contestVO.getPassword()))){
-
                 if (!c.isStarted()){ //比赛没开始
                     return new RestfulResult(StatusCode.REQUEST_ERROR, "contest not started", c);
                 }
@@ -288,6 +290,9 @@ public class ContestController {
             } catch (Exception e) {
                 return new RestfulResult(StatusCode.HTTP_FAILURE, "error");
             }
+        }
+        if (c.getTeam() != null){
+            c.setTeam(c.getTeam().clearLazyRoles());
         }
         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", c);
     }
