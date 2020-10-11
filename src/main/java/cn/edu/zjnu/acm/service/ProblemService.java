@@ -14,10 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -109,6 +106,17 @@ public class ProblemService {
 
     public List<Tag> convertString2Tag(String [] ts) {
         ArrayList<Tag> tags = new ArrayList<>();
+        for (int i = 0; i < ts.length; i++) {
+            Tag t = tagRepository.findByName(ts[i]).orElse(null);
+            if (t != null) {
+                tags.add(t);
+            }
+        }
+        return tags;
+    }
+
+    public Set<Tag> convertString2TagReturnSet(String [] ts) {
+        HashSet<Tag> tags = new HashSet<>();
         for (int i = 0; i < ts.length; i++) {
             Tag t = tagRepository.findByName(ts[i]).orElse(null);
             if (t != null) {

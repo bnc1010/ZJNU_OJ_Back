@@ -1,27 +1,18 @@
 package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.common.constant.StatusCode;
+import cn.edu.zjnu.acm.common.ve.ProblemSetVO;
 import cn.edu.zjnu.acm.common.ve.ProblemVO;
 import cn.edu.zjnu.acm.config.Config;
 import cn.edu.zjnu.acm.config.GlobalStatus;
 import cn.edu.zjnu.acm.entity.User;
-import cn.edu.zjnu.acm.entity.oj.Contest;
-import cn.edu.zjnu.acm.entity.oj.ContestProblem;
-import cn.edu.zjnu.acm.entity.oj.Problem;
-import cn.edu.zjnu.acm.entity.oj.Tag;
+import cn.edu.zjnu.acm.entity.oj.*;
 import cn.edu.zjnu.acm.common.exception.ForbiddenException;
 import cn.edu.zjnu.acm.repo.contest.ContestProblemRepository;
-import cn.edu.zjnu.acm.repo.problem.AnalysisRepository;
-import cn.edu.zjnu.acm.repo.problem.ProblemRepository;
-import cn.edu.zjnu.acm.repo.problem.SolutionRepository;
-import cn.edu.zjnu.acm.repo.problem.TagRepository;
-import cn.edu.zjnu.acm.repo.user.TeacherRepository;
+import cn.edu.zjnu.acm.repo.problem.*;
 import cn.edu.zjnu.acm.repo.user.UserProblemRepository;
 import cn.edu.zjnu.acm.repo.user.UserProfileRepository;
-import cn.edu.zjnu.acm.service.ContestService;
-import cn.edu.zjnu.acm.service.ProblemService;
-import cn.edu.zjnu.acm.service.SolutionService;
-import cn.edu.zjnu.acm.service.UserService;
+import cn.edu.zjnu.acm.service.*;
 import cn.edu.zjnu.acm.util.RestfulResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -34,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -57,16 +49,22 @@ public class AdminController {
     private final UserService userService;
     private final HttpSession session;
     private final ProblemRepository problemRepository;
+    private final ProblemSetService problemSetService;
     private final Config config;
     private final SolutionService solutionService;
     private final ContestProblemRepository contestProblemRepository;
     private final SolutionRepository solutionRepository;
     private final UserProfileRepository userProfileRepository;
     private final AnalysisRepository analysisRepository;
-    private final TeacherRepository teacherRepository;
     private final TagRepository tagRepository;
+    private final ProblemSetRepository problemSetRepository;
 
-    public AdminController(UserProblemRepository userProblemRepository, ProblemService problemService, ContestService contestService, UserService userService, HttpSession session, Config config, SolutionService solutionService, ProblemRepository problemRepository, ContestProblemRepository contestProblemRepository, SolutionRepository solutionRepository, UserProfileRepository userProfileRepository, AnalysisRepository analysisRepository, TeacherRepository teacherRepository, TagRepository tagRepository) {
+    public AdminController(UserProblemRepository userProblemRepository, ProblemService problemService,
+                           ContestService contestService, UserService userService, HttpSession session,
+                           Config config, SolutionService solutionService, ProblemRepository problemRepository,
+                           ContestProblemRepository contestProblemRepository, SolutionRepository solutionRepository,
+                           UserProfileRepository userProfileRepository, AnalysisRepository analysisRepository,
+                           ProblemSetService problemSetService, TagRepository tagRepository,ProblemSetRepository problemSetRepository) {
         this.userProblemRepository = userProblemRepository;
         this.problemService = problemService;
         this.contestService = contestService;
@@ -79,8 +77,9 @@ public class AdminController {
         this.solutionRepository = solutionRepository;
         this.userProfileRepository = userProfileRepository;
         this.analysisRepository = analysisRepository;
-        this.teacherRepository = teacherRepository;
         this.tagRepository = tagRepository;
+        this.problemSetService = problemSetService;
+        this.problemSetRepository = problemSetRepository;
     }
 
 
@@ -227,6 +226,90 @@ public class AdminController {
 //        problemRepository.delete(problem);
 //        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", null);
 //    }
+
+
+    @GetMapping("/problemset")
+    public RestfulResult getProblemSetList(@RequestParam(value = "page", defaultValue = "0") int page,
+                                       @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
+                                       @RequestParam(value = "search", defaultValue = "") String search) {
+        page = Math.max(page, 0);
+        Page<ProblemSet> problemSetPage = null;
+        System.out.println("debug1");
+        try{
+            if (search != null && search.length() > 0) {
+                int spl = search.lastIndexOf("$$");
+                System.out.println("debug2");
+                if (spl >= 0) {
+                    String tags = search.substring(spl + 2);
+                    search = search.substring(0, spl);
+                    String[] tagNames = tags.split("\\,");
+                    List<ProblemSet> _problemSet = problemSetService.getAllProblemSet(0, 1, search).getContent();
+                    System.out.println("debug3");
+                    problemSetPage = problemSetService.getByTagName(page, pagesize, Arrays.asList(tagNames), _problemSet);
+                } else {
+                    problemSetPage = problemSetService.getAllProblemSet(page, pagesize, search);
+                }
+            } else {
+                problemSetPage = problemSetService.getAllProblemSet(page, pagesize, "");
+            }
+            System.out.println("debug4");
+            System.out.println(problemSetPage.getContent().get(0).getTags().toString());
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return  new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
+        }
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problemSetPage);
+    }
+
+    @PostMapping("/problemset/insert")
+    public RestfulResult addProblemSet(@RequestBody ProblemSetVO problemSetVO) {
+        if (problemSetService.isProblemSetRepeated(problemSetVO.getTitle())) {
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "ProblemSet name already existed!");
+        }
+        ProblemSet problemSet = null;
+        try {
+            problemSet = new ProblemSet();
+            problemSet.setTitle(problemSetVO.getTitle());
+            problemSet.setActive(problemSetVO.getActive());
+            problemSet.setDescription(problemSetVO.getDescription());
+            problemSet.setTags(problemService.convertString2TagReturnSet(problemSetVO.getTags()));
+            problemSet.setProblems(problemSetService.getProblemArrayByIds(problemSetVO.getProblems()));
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return new RestfulResult(StatusCode.HTTP_FAILURE, RestfulResult.ERROR);
+        }
+
+        problemSetRepository.save(problemSet);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS);
+    }
+
+    @PostMapping("/problemset/update/{id:[0-9]+}")
+    public RestfulResult editProblemSet(@PathVariable("id") Long id, @RequestBody ProblemSetVO problemSetVO){
+        ProblemSet problemSet = problemSetService.getProblemSetById(id);
+        if (problemSet == null){
+            return new RestfulResult(StatusCode.NOT_FOUND, "题目集不存在");
+        }
+        System.out.println(problemSet.toString());
+        if (!problemSetVO.getTitle().equals(problemSet.getTitle()) && problemSetService.isProblemSetRepeated(problemSetVO.getTitle())) {
+            return new RestfulResult(StatusCode.HTTP_FAILURE, "ProblemSet name already existed!");
+        }
+        try{
+            problemSet.setTitle(problemSetVO.getTitle());
+            problemSet.setDescription(problemSetVO.getDescription());
+            problemSet.setActive(problemSetVO.getActive());
+            problemSet.setProblems(problemSetService.getProblemArrayByIds(problemSetVO.getProblems()));
+            problemSet.setTags(problemService.convertString2TagReturnSet(problemSetVO.getTags()));
+            problemSetService.insertNewProblemSet(problemSet);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return new RestfulResult(StatusCode.HTTP_FAILURE, RestfulResult.ERROR);
+        }
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS);
+    }
+
 
     @GetMapping("/correctData")
     public String calculateData() {

@@ -12,21 +12,15 @@ import cn.edu.zjnu.acm.entity.oj.AnalysisComment;
 import cn.edu.zjnu.acm.entity.oj.Problem;
 import cn.edu.zjnu.acm.entity.oj.Solution;
 import cn.edu.zjnu.acm.common.exception.ForbiddenException;
-import cn.edu.zjnu.acm.common.exception.NeedLoginException;
 import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.repo.user.UserProblemRepository;
 import cn.edu.zjnu.acm.service.*;
 import cn.edu.zjnu.acm.util.RestfulResult;
-import cn.edu.zjnu.acm.util.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
@@ -39,16 +33,14 @@ public class ProblemController {
     private final UserService userService;
     private final JudgeService judgeService;
     private final SolutionService solutionService;
-    private final HttpSession session;
     private final TokenManager tokenManager;
 
 
-    public ProblemController(ProblemService problemService, UserProblemRepository userProblemRepository, UserService userService, JudgeService judgeService, SolutionService solutionService, HttpSession session, TokenManager tokenManager) {
+    public ProblemController(ProblemService problemService, UserProblemRepository userProblemRepository, UserService userService, JudgeService judgeService, SolutionService solutionService, TokenManager tokenManager) {
         this.problemService = problemService;
         this.userService = userService;
         this.judgeService = judgeService;
         this.solutionService = solutionService;
-        this.session = session;
         this.tokenManager = tokenManager;
     }
 
