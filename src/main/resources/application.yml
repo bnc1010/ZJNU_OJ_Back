@@ -25,11 +25,6 @@ spring:
       enabled: false
     livereload:
       enabled: false
-  thymeleaf:
-    encoding: utf-8
-    cache: false
-    mode: HTML
-    check-template: false
   config:
     additional-location: /onlinejudge/config
   servlet:
