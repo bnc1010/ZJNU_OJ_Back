@@ -4,13 +4,8 @@ import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
-import cn.edu.zjnu.acm.common.utils.Base64Util;
-import cn.edu.zjnu.acm.common.ve.TokenVO;
-import cn.edu.zjnu.acm.entity.Teacher;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.*;
-import cn.edu.zjnu.acm.common.exception.ForbiddenException;
-import cn.edu.zjnu.acm.common.exception.NeedLoginException;
 import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.repo.CommentRepository;
 import cn.edu.zjnu.acm.repo.contest.ContestProblemRepository;
@@ -43,10 +38,9 @@ public class ContestController {
     private final JudgeService judgeService;
     private final ContestProblemRepository contestProblemRepository;
     private final TeamService teamService;
-    private final TokenManager tokenManager;
     private final RedisService redisService;
 
-    public ContestController(UserService userService, ProblemService problemService, SolutionService solutionService, ContestService contestService, JudgeService judgeService, ContestProblemRepository contestProblemRepository, TeamService teamService, CommentRepository commentRepository, TokenManager tokenManager, RedisService redisService) {
+    public ContestController(UserService userService, ProblemService problemService, SolutionService solutionService, ContestService contestService, JudgeService judgeService, ContestProblemRepository contestProblemRepository, TeamService teamService, CommentRepository commentRepository, RedisService redisService) {
         this.userService = userService;
         this.problemService = problemService;
         this.solutionService = solutionService;
@@ -54,7 +48,6 @@ public class ContestController {
         this.judgeService = judgeService;
         this.contestProblemRepository = contestProblemRepository;
         this.teamService = teamService;
-        this.tokenManager = tokenManager;
         this.redisService = redisService;
     }
 
@@ -106,7 +99,7 @@ public class ContestController {
     public RestfulResult contestReady(@PathVariable("cid") Long cid, HttpServletRequest request, @RequestBody ContestVO contestVO) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try{
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            TokenModel tokenModel = redisService.getToken(tk);
             User user = userService.getUserById(tokenModel.getUserId());
             Contest contest = contestService.getContestByIdTwoType(cid, false);
             if (contest == null)
@@ -169,7 +162,7 @@ public class ContestController {
                                         HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try{
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            TokenModel tokenModel = redisService.getToken(tk);
             User user = userService.getUserById(tokenModel.getUserId());
             if (user == null)
                 return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
@@ -198,7 +191,7 @@ public class ContestController {
                                 @RequestBody ContestVO contestVO, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try{
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            TokenModel tokenModel = redisService.getToken(tk);
             User user = userService.getUserById(tokenModel.getUserId());
             if (user == null)
                 return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
@@ -246,7 +239,7 @@ public class ContestController {
     public RestfulResult getContestDetail(@PathVariable("cid") Long cid, @RequestBody ContestVO contestVO, HttpServletRequest request) {
         System.out.println("debug1");
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Contest c = contestService.getContestByIdTwoType(cid, true);
         System.out.println("debug2");
@@ -304,7 +297,7 @@ public class ContestController {
                                          @RequestBody ProblemController.SubmitCodeObject submitCodeObject) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         log.info("Submit:" + Date.from(Instant.now()));
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         String source = submitCodeObject.getSource();
         boolean share = false;
         String language = submitCodeObject.getLanguage();
@@ -350,7 +343,7 @@ public class ContestController {
     @PostMapping("/comments/post/{cid:[0-9]+}")
     public String postComments(@PathVariable(value = "cid") Long cid, @RequestBody CommentPost commentPost, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
             if (commentPost.replyText.length() < 4) return "too short";
             User user = userService.getUserById(tokenModel.getUserId());
@@ -388,7 +381,7 @@ public class ContestController {
                                            @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
                                            HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
             @NotNull Contest contest = contestService.getContestById(cid, true);
             if (!contest.isStarted())
@@ -441,8 +434,8 @@ public class ContestController {
 
     @PostMapping("/create")
     public RestfulResult insertContestAction(@RequestBody ContestVO postContest) {
+        TokenModel tokenModel = redisService.getToken(postContest.getToken());
         try {
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(postContest.getToken()));
             User user = userService.getUserById(tokenModel.getUserId());
             if (user == null)
                 return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");

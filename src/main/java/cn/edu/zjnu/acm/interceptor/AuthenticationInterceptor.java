@@ -4,10 +4,13 @@ import cn.edu.zjnu.acm.authorization.manager.AuthorityManager;
 import cn.edu.zjnu.acm.authorization.manager.impl.RedisTokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.annotation.LogsOfAdmin;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.exception.AuthorityException;
 import cn.edu.zjnu.acm.common.exception.TokenException;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
+import cn.edu.zjnu.acm.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.method.HandlerMethod;
@@ -27,6 +30,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
 
     @Autowired
     AuthorityManager authorityManager;
+
+    @Autowired
+    RedisService redisService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -54,18 +60,26 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
 
         // ************************************************************************************************************
 
+
+        boolean log_c = method.isAnnotationPresent(LogsOfUser.class);
+        boolean log_a = method.isAnnotationPresent(LogsOfAdmin.class);
+
         // 若目标方法忽略了安全性检查,则直接调用目标方法
         if (method.isAnnotationPresent(IgnoreSecurity.class)) {
             return true;
         }
         // 从 request header 中获取当前 token
         String authentication = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = null;
-        try{
-            tokenModel = tokenManager.getToken(Base64Util.decodeData(authentication));
-        }
-        catch (Exception e){
-            throw new TokenException("this token is invalid");
+        TokenModel tokenModel = redisService.getToken(authentication);
+
+        if (tokenModel == null){
+            try{
+                tokenModel = tokenManager.getToken(Base64Util.decodeData(authentication));
+            }
+            catch (Exception e){
+                throw new TokenException("token invalid");
+            }
+            redisService.insertToken(authentication, tokenModel);
         }
 
         // 检查有效性(检查是否登录)

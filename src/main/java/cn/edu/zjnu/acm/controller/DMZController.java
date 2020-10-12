@@ -10,6 +10,7 @@ import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.common.ve.UserVO;
 import cn.edu.zjnu.acm.entity.Role;
 import cn.edu.zjnu.acm.entity.User;
+import cn.edu.zjnu.acm.service.RedisService;
 import cn.edu.zjnu.acm.service.RoleService;
 import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.RestfulResult;
@@ -41,8 +42,7 @@ public class DMZController {
     @Autowired
     private RedisTokenManager redisTokenManager;
     @Autowired
-    private RoleService roleService;
-
+    private RedisService redisService;
 
 
     @ApiOperation(value = "用户登录", notes = "参数：userName,password")
@@ -74,7 +74,9 @@ public class DMZController {
         userVO.setAvatar(user.getAvatar());
         userVO.setEmail(user.getEmail());
         userVO.setIntro(user.getIntro());
-        userVO.setToken(Base64Util.encodeData(token.getToken()));
+        String tk = Base64Util.encodeData(token.getToken());
+        userVO.setToken(tk);
+        redisService.insertToken(tk, token);
         restfulResult.setData(userVO);
         return restfulResult;
     }
@@ -141,8 +143,8 @@ public class DMZController {
     public RestfulResult userInfo(@RequestBody UserVO requestUser, HttpServletRequest request){
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel token = redisService.getToken(tk);
         try {
-            TokenModel token = redisTokenManager.getToken(Base64Util.decodeData(tk));
             List roles = authorityManager.getRoleByToken(token.getRoleCode());
             restfulResult.setData(roles);
         } catch (Exception e) {

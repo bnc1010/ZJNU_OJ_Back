@@ -11,6 +11,7 @@ import cn.edu.zjnu.acm.common.ve.PermissionVO;
 import cn.edu.zjnu.acm.common.ve.RoleVO;
 import cn.edu.zjnu.acm.entity.Permission;
 import cn.edu.zjnu.acm.service.PermissionService;
+import cn.edu.zjnu.acm.service.RedisService;
 import cn.edu.zjnu.acm.service.RoleService;
 import cn.edu.zjnu.acm.service.UserOperationService;
 import cn.edu.zjnu.acm.util.RestfulResult;
@@ -43,6 +44,8 @@ public class PermissionController {
     private UserOperationService userOperationService;
     @Autowired
     private RoleService roleService;
+    @Autowired
+    private RedisService redisService;
 
     @ApiOperation(value = "查询列表", notes = "参数：token")
     @RequestMapping(value = "all", method = RequestMethod.POST)
@@ -50,9 +53,11 @@ public class PermissionController {
     public RestfulResult getPermissionList(HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+        System.out.println(tk);
+        System.out.println(tokenModel.toString());
         try {
-            userOperationService.checkOperationToUserByToken(tk,-1);
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            userOperationService.checkOperationToUserByToken(tokenModel,-1);
             String [] pus = tokenModel.getPermissionCode().split("&");
             List<Permission> permissionsList = new ArrayList<>();
             for (String pu : pus){
@@ -76,10 +81,10 @@ public class PermissionController {
     @ResponseBody
     public RestfulResult getPermissionByRoleId(@RequestBody RoleVO requestRole, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
-            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-            userOperationService.checkOperationToUserByToken(tk,-1);
-            tokenManager.getToken(Base64Util.decodeData(tk));
+            userOperationService.checkOperationToUserByToken(tokenModel,-1);
             List permissions = roleService.getPermissionIdByRoleId(requestRole.getId());
             restfulResult.setData(permissions);
         } catch (Exception e) {
@@ -97,10 +102,10 @@ public class PermissionController {
     @ResponseBody
     public RestfulResult addPermission(@RequestBody PermissionVO requestPermission, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
-        TokenModel tokenModel = null;
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
-            userOperationService.checkOperationToUserByToken(tk, -1);
+            userOperationService.checkOperationToUserByToken(tokenModel, -1);
             Permission permission = new Permission();
             permission.setName(requestPermission.getName());
             permission.setUrl(requestPermission.getUrl());
@@ -109,7 +114,6 @@ public class PermissionController {
             long pId = permissionService.getIdByNameAndUrl(permission.getName(),permission.getUrl());
             List pList = new ArrayList<Integer>();pList.add(pId);
             roleService.grantPrivileges(1,pList);
-            tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] authorityCode = authorityManager.getAuthorityCode(tokenModel.getUserId());
             tokenManager.deleteToken(tokenModel.getUserId());
             TokenModel token = tokenManager.createToken(tokenModel.getUserId(), authorityCode[0], authorityCode[1], tokenModel.getSalt());

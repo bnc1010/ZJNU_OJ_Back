@@ -58,13 +58,15 @@ public class AdminController {
     private final AnalysisRepository analysisRepository;
     private final TagRepository tagRepository;
     private final ProblemSetRepository problemSetRepository;
+    private final RedisService redisService;
 
     public AdminController(UserProblemRepository userProblemRepository, ProblemService problemService,
                            ContestService contestService, UserService userService, HttpSession session,
                            Config config, SolutionService solutionService, ProblemRepository problemRepository,
                            ContestProblemRepository contestProblemRepository, SolutionRepository solutionRepository,
                            UserProfileRepository userProfileRepository, AnalysisRepository analysisRepository,
-                           ProblemSetService problemSetService, TagRepository tagRepository,ProblemSetRepository problemSetRepository) {
+                           ProblemSetService problemSetService, TagRepository tagRepository,ProblemSetRepository problemSetRepository,
+                           RedisService redisService) {
         this.userProblemRepository = userProblemRepository;
         this.problemService = problemService;
         this.contestService = contestService;
@@ -80,6 +82,7 @@ public class AdminController {
         this.tagRepository = tagRepository;
         this.problemSetService = problemSetService;
         this.problemSetRepository = problemSetRepository;
+        this.redisService = redisService;
     }
 
 

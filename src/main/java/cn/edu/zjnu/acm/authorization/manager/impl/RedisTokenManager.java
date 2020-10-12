@@ -4,6 +4,7 @@ import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
+import cn.edu.zjnu.acm.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

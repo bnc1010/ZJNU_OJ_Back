@@ -9,6 +9,7 @@ import cn.edu.zjnu.acm.common.utils.Base64Util;
 import cn.edu.zjnu.acm.entity.ImageLog;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.repo.logs.ImageLogRepository;
+import cn.edu.zjnu.acm.service.RedisService;
 import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.RestfulResult;
 import lombok.extern.slf4j.Slf4j;
@@ -30,14 +31,14 @@ import java.time.Instant;
 public class MediaController {
     private final ImageLogRepository imageLogRepository;
     private final String saveDir = "/onlinejudge/media/";
-    private final TokenManager tokenManager;
     private final UserService userService;
+    private final RedisService redisService;
     private final long MAX_SIZE = 10 * 1024 * 1024; //最大10M
 
-    public MediaController(ImageLogRepository imageLogRepository, TokenManager tokenManager, UserService userService) {
+    public MediaController(ImageLogRepository imageLogRepository, UserService userService, RedisService redisService) {
         this.imageLogRepository = imageLogRepository;
-        this.tokenManager = tokenManager;
         this.userService = userService;
+        this.redisService = redisService;
     }
 
     @PostConstruct
@@ -69,9 +70,9 @@ public class MediaController {
         String filePath;
         String md5;
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = null;
         try {
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             user = userService.getUserById(tokenModel.getUserId());
             md5 = DigestUtils.md5DigestAsHex(multipartFile.getInputStream());
             filePath = saveDir + md5;

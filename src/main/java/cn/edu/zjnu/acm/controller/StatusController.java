@@ -5,13 +5,13 @@ import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
-import cn.edu.zjnu.acm.common.ve.TokenVO;
 import cn.edu.zjnu.acm.config.Config;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Problem;
 import cn.edu.zjnu.acm.entity.oj.Solution;
 import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.service.ProblemService;
+import cn.edu.zjnu.acm.service.RedisService;
 import cn.edu.zjnu.acm.service.SolutionService;
 import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.RestfulResult;
@@ -33,14 +33,15 @@ public class StatusController {
     private final SolutionService solutionService;
     private final UserService userService;
     private final ProblemService problemService;
-    private final TokenManager tokenManager;
+    private final RedisService redisService;
 
-    public StatusController(Config config, SolutionService solutionService, UserService userService, ProblemService problemService, TokenManager tokenManager) {
+    public StatusController(Config config, SolutionService solutionService, UserService userService,
+                            ProblemService problemService, RedisService redisService) {
         this.config = config;
         this.solutionService = solutionService;
         this.userService = userService;
         this.problemService = problemService;
-        this.tokenManager  = tokenManager;
+        this.redisService = redisService;
     }
 
     public static Solution solutionFilter(Solution s) {
@@ -106,9 +107,9 @@ public class StatusController {
     public RestfulResult restfulShowSourceCode(@PathVariable(value = "id") Long id, HttpServletRequest request) {
         Solution solution = null;
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
             solution = solutionService.getSolutionById(id);
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             assert solution != null;
             User user = userService.getUserById(tokenModel.getUserId());
             if (user == null) {
@@ -140,8 +141,8 @@ public class StatusController {
     @PostMapping("/share/{id:[0-9]+}")
     public RestfulResult setShare(@PathVariable("id") Long id, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             if (tokenModel == null){
                 throw new NotFoundException();
             }
@@ -163,7 +164,7 @@ public class StatusController {
     @GetMapping("/user/latest/submit/{id:[0-9]+}")
     public RestfulResult userSubmitLatestHistory(@PathVariable("id") Long pid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
             Problem problem = problemService.getActiveProblemById(pid);
             User user = userService.getUserById(tokenModel.getUserId());

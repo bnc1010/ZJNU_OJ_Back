@@ -33,15 +33,15 @@ public class ProblemController {
     private final UserService userService;
     private final JudgeService judgeService;
     private final SolutionService solutionService;
-    private final TokenManager tokenManager;
+    private final RedisService redisService;
 
 
-    public ProblemController(ProblemService problemService, UserProblemRepository userProblemRepository, UserService userService, JudgeService judgeService, SolutionService solutionService, TokenManager tokenManager) {
+    public ProblemController(ProblemService problemService, UserService userService, JudgeService judgeService, SolutionService solutionService, RedisService redisService) {
         this.problemService = problemService;
         this.userService = userService;
         this.judgeService = judgeService;
         this.solutionService = solutionService;
-        this.tokenManager = tokenManager;
+        this.redisService = redisService;
     }
 
 
@@ -117,9 +117,10 @@ public class ProblemController {
     public RestfulResult submitProblem(@PathVariable("id") Long id,
                                 @RequestBody SubmitCodeObject submitCodeObject,
                                 HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try{
-            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+
             String source = submitCodeObject.getSource();
             boolean share = submitCodeObject.isShare();
             String language = submitCodeObject.getLanguage();
@@ -165,8 +166,9 @@ public class ProblemController {
     @GetMapping("/analysis/{pid:[0-9]+}")
     public RestfulResult getProblemArticle(@PathVariable Long pid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        Problem problem = checkProblemExist(pid);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
+                Problem problem = checkProblemExist(pid);
+
         User user = userService.getUserById(tokenModel.getUserId());
         if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {//a5是oj管理员
             if (!problemService.isUserAcProblem(user, problem)) {

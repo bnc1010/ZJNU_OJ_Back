@@ -9,6 +9,7 @@ import cn.edu.zjnu.acm.common.utils.List2Page;
 import cn.edu.zjnu.acm.common.ve.RoleVO;
 import cn.edu.zjnu.acm.entity.Role;
 import cn.edu.zjnu.acm.entity.User;
+import cn.edu.zjnu.acm.service.RedisService;
 import cn.edu.zjnu.acm.service.RoleService;
 import cn.edu.zjnu.acm.service.UserOperationService;
 import cn.edu.zjnu.acm.service.UserService;
@@ -35,13 +36,13 @@ import java.util.Map;
 public class RoleController{
 
     @Autowired
-    private TokenManager tokenManager;
-    @Autowired
     private RoleService roleService;
     @Autowired
     private UserService userService;
     @Autowired
     private UserOperationService userOperationService;
+    @Autowired
+    private RedisService redisService;
 
     @ApiOperation(value = "查询列表")
     @GetMapping("/all")
@@ -51,8 +52,8 @@ public class RoleController{
                                      @RequestParam(value = "search", defaultValue = "") String search,
                                      HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        userOperationService.checkOperationToUserByToken(tk,-1);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
+        userOperationService.checkOperationToUserByToken(tokenModel,-1);
         page=Math.max(page, 0);
         String [] aus = tokenModel.getRoleCode().split("&");
 
@@ -105,7 +106,6 @@ public class RoleController{
         return restfulResult;
     }
 
-
     @ApiOperation(value = "删除角色", notes = "参数：rId")
     @RequestMapping(value = "delete", method = RequestMethod.POST)
     @ResponseBody
@@ -149,9 +149,9 @@ public class RoleController{
     public RestfulResult grantPrivilege(@RequestBody RoleVO requestRole, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
-            userOperationService.checkOperationToUserByToken(tk,-1);
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+            userOperationService.checkOperationToUserByToken(tokenModel,-1);
             String [] aus = tokenModel.getPermissionCode().split("&");
             List<Long> pIds = new ArrayList<>();
             for (long rs:requestRole.getPIds()){

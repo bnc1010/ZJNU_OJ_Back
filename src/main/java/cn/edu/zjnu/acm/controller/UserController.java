@@ -9,6 +9,7 @@ import cn.edu.zjnu.acm.common.utils.MD5Util;
 import cn.edu.zjnu.acm.common.ve.UserVO;
 import cn.edu.zjnu.acm.entity.Role;
 import cn.edu.zjnu.acm.entity.User;
+import cn.edu.zjnu.acm.service.RedisService;
 import cn.edu.zjnu.acm.service.RoleService;
 import cn.edu.zjnu.acm.service.UserOperationService;
 import cn.edu.zjnu.acm.service.UserService;
@@ -41,6 +42,9 @@ public class UserController{
 
     @Autowired
     RoleService roleService;
+
+    @Autowired
+    RedisService redisService;
 
     @ApiOperation(value = "查询列表")
     @GetMapping("/all")
@@ -95,9 +99,10 @@ public class UserController{
     @RequestMapping(value = "/roles", method = RequestMethod.POST)
     public RestfulResult getUserRole(@RequestBody UserVO requestUser,HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
-            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-            userOperationService.checkOperationToUserByToken(tk, requestUser.getId());
+            userOperationService.checkOperationToUserByToken(tokenModel, requestUser.getId());
             List<Long> rIds = roleService.getRoleIdByUserId(requestUser.getId());
             restfulResult.setData(rIds);
         } catch (Exception e) {
@@ -114,9 +119,10 @@ public class UserController{
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public RestfulResult update(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
-            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-            userOperationService.checkOperationToUserByToken(tk, requestUser.getId());
+            userOperationService.checkOperationToUserByToken(tokenModel, requestUser.getId());
             User oldUser = userService.getUserById(requestUser.getId());
 
             oldUser.setUsername(requestUser.getUsername());
@@ -140,11 +146,13 @@ public class UserController{
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     public RestfulResult delete(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
-            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+
             boolean allOk = true;
             for(long uId : requestUser.getUserIds()){
-                userOperationService.checkOperationToUserByToken(tk, uId);
+                userOperationService.checkOperationToUserByToken(tokenModel, uId);
             }
             for(long uId_ : requestUser.getUserIds()){
 //                    userService.deleteByUserId(uId_);
@@ -166,14 +174,10 @@ public class UserController{
     @RequestMapping(value = "/grant", method = RequestMethod.POST)
     public RestfulResult grantUser(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+
         try {
-            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-            if (tk == null){
-                restfulResult.setCode(StatusCode.HTTP_FAILURE);
-                restfulResult.setMessage("token无效");
-                return restfulResult;
-            }
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             String [] rus = tokenModel.getRoleCode().split("&");
             List<Long> rIds = new ArrayList<>();
             int minRank = 10000;
@@ -184,7 +188,6 @@ public class UserController{
                 restfulResult.setMessage("操作对象不存在!");
                 return restfulResult;
             }
-            System.out.println(tokenModel.getToken());
             if (tokenModel.getRoleCode().contains("r1")){//系统管理员情况
                 for (Long rs:requestUser.getRoleIds()){
                     Role role = roleService.findById(rs);
@@ -255,13 +258,8 @@ public class UserController{
     public RestfulResult dropRole(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        if (tk == null) {
-            restfulResult.setCode(StatusCode.HTTP_FAILURE);
-            restfulResult.setMessage("token无效");
-            return restfulResult;
-        }
+        TokenModel tokenModel = redisService.getToken(tk);
         try {
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             User nowUser = userService.getUserById(tokenModel.getUserId());
             User targetUser = userService.getUserById(requestUser.getId());
             if (targetUser == null){
@@ -319,9 +317,11 @@ public class UserController{
     @RequestMapping(value = "/reset", method = RequestMethod.POST)
     public RestfulResult RestPassword(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         try{
-            String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-            User u = userOperationService.checkOperationToUserByToken(tk, requestUser.getId());
+
+            User u = userOperationService.checkOperationToUserByToken(tokenModel, requestUser.getId());
             u = userService.setUserPassword(u, "123456");
             userService.updateUserInfo(u);
         }

@@ -12,15 +12,8 @@ import org.springframework.stereotype.Service;
 public class UserOperationService{
     @Autowired
     UserService userService;
-    @Autowired
-    TokenManager tokenManager;
 
-    public User checkOperationToUserByToken(String operatorToken, long target) {
-        if (operatorToken == null){
-            throw new AuthorityException("token为空");
-        }
-
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(operatorToken));
+    public User checkOperationToUserByToken(TokenModel tokenModel, long target) {
 
         if (tokenModel == null){
             throw new AuthorityException("token无效");
@@ -47,7 +40,5 @@ public class UserOperationService{
 
         return targetUser;
     }
-
-
 
 }
