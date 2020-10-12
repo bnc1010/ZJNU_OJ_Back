@@ -37,8 +37,8 @@ public class UserService {
         this.userRoleRepository = userRoleRepository;
     }
 
-    public Page<User> searchUser(int page, int size, String search) {
-        return userRepository.findAllByUsernameContains(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")), search);
+    public Page<User> getUserPage(int page, int size, String search) {
+        return userRepository.findAllByUsernameContains(PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id")), search);
     }
 
     public User getUserById(Long id) {
@@ -119,8 +119,7 @@ public class UserService {
     }
 
     public List<User> userList() {
-        List<User> userList = userRepository.findAll();
-        return userList;
+        return userRepository.findAll();
     }
 
     /**

@@ -5,6 +5,7 @@ import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
+import cn.edu.zjnu.acm.common.utils.List2Page;
 import cn.edu.zjnu.acm.common.ve.RoleVO;
 import cn.edu.zjnu.acm.entity.Role;
 import cn.edu.zjnu.acm.entity.User;
@@ -16,11 +17,10 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -44,33 +44,44 @@ public class RoleController{
     private UserOperationService userOperationService;
 
     @ApiOperation(value = "查询列表")
-    @RequestMapping(value = "all", method = RequestMethod.POST)
+    @GetMapping("/all")
     @ResponseBody
-    public RestfulResult getRoleList(@RequestBody RoleVO requestRole, HttpServletRequest request) {
-        RestfulResult restfulResult = new RestfulResult();
+    public RestfulResult getRoleList(@RequestParam(value = "page", defaultValue = "0") int page,
+                                     @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
+                                     @RequestParam(value = "search", defaultValue = "") String search,
+                                     HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        try {
-            userOperationService.checkOperationToUserByToken(tk,-1);
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
-            String [] aus = tokenModel.getRoleCode().split("&");
-            List<Role> roleList = new ArrayList<>();
-            if (tokenModel.getRoleCode().contains("r1")){//root 用户将可见所有的角色
-                roleList = roleService.findAll();
+        userOperationService.checkOperationToUserByToken(tk,-1);
+        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        page=Math.max(page, 0);
+        String [] aus = tokenModel.getRoleCode().split("&");
+
+
+
+        if (tokenModel.getRoleCode().contains("r1")){//root 用户将可见所有的角色
+            if (search.equals("no page")){
+                return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, roleService.findAll());
             }
             else{
-                for (String au:aus){
-                    if (au.equals("ru:"))continue;
-                    Role role = roleService.findById(Long.parseLong(au.substring(1)));
-                    roleList.add(role);
-                }
+                Page<Role> rolePage = roleService.findByRolenameContains(page, pagesize, search);
+                return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, rolePage);
             }
-            restfulResult.setData(roleList);
-        } catch (Exception e) {
-            restfulResult.setCode(StatusCode.HTTP_FAILURE);
-            restfulResult.setMessage(e.getMessage());
-            log.info("查询列表失败！");
         }
-        return restfulResult;
+        else{
+            List<Role> roleList = new ArrayList<>();
+            for (String au:aus){
+                if (au.equals("ru:"))continue;
+                Role role = roleService.findById(Long.parseLong(au.substring(1)));
+                roleList.add(role);
+            }
+            if (search.equals("no page")){
+                return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, roleList);
+            }
+            else{
+                Page<Role> rolePage = List2Page.listToPage(roleList, PageRequest.of(page, pagesize));
+                return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, rolePage);
+            }
+        }
     }
 
 

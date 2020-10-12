@@ -17,6 +17,7 @@ import cn.edu.zjnu.acm.util.RestfulResult;
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +29,7 @@ import java.util.Map;
 
 @Slf4j
 @Api(description = "user管理", tags = "UserHandler", basePath = "/users")
-@Controller
+@RestController
 @RequestMapping("/api/usermanager/user")
 public class UserController{
 
@@ -41,28 +42,20 @@ public class UserController{
     @Autowired
     RoleService roleService;
 
-    @ApiOperation(value = "查询列表", notes = "可选参数：pageNum,pageSize")
-    @RequestMapping(value = "/all", method = RequestMethod.POST)
-    @ResponseBody
-    public RestfulResult getUserList(@RequestBody UserVO requestUser) {
-        RestfulResult restfulResult = new RestfulResult();
+    @ApiOperation(value = "查询列表")
+    @GetMapping("/all")
+    public RestfulResult getUserList(@RequestParam(value = "page", defaultValue = "0") int page,
+                                     @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
+                                     @RequestParam(value = "search", defaultValue = "") String search){
+        Page<User> userPage = null;
+        page=Math.max(page, 0);
         try {
-            List<User> userList = null;
-//            int pageNum = 1;
-//            int pageSize = 10;
-//            if (requestUser.getPageNum() != null && requestUser.getPageSize() != null){
-//                pageNum = requestUser.getPageNum();
-//                pageSize = requestUser.getPageSize();
-//            }
-            userList = userService.userList();
-            restfulResult.setData(userList);
-//            restfulResult.setExxra(new PageInfo<>(userList));
+            userPage = userService.getUserPage(page, pagesize, search);
         } catch (Exception e) {
-            restfulResult.setCode(StatusCode.HTTP_FAILURE);
-            restfulResult.setMessage("Request User list Failed！");
             log.info("查询列表失败！", e);
+            return new RestfulResult(StatusCode.HTTP_FAILURE, RestfulResult.ERROR);
         }
-        return restfulResult;
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, userPage);
     }
 
     @ApiOperation(value = "根据id查询指定的User", notes = "参数:uId")

@@ -1,6 +1,8 @@
 package cn.edu.zjnu.acm.repo.user;
 
 import cn.edu.zjnu.acm.entity.Role;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface RoleRepository extends JpaRepository<Role, Long> {
+
+    Page<Role> findAllByNameContains(Pageable pageable, String search);
+
+    List<Role> findAll();
+
     @Query(value = "select id from role where role.type=:rtype", nativeQuery = true)
     List<Long> findRoleIdByType(@Param("rtype") String type);
 
