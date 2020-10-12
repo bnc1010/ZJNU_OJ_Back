@@ -434,14 +434,32 @@ public class AdminController {
     public RestfulResult addTag(@RequestBody Map<String, String> tagmap) {
         String tagname = tagmap.getOrDefault("tagname", "");
         if (tagname.length() == 0) {
-            return new RestfulResult(400, "need input tagname");
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "need input tagname");
         }
         Tag tag = tagRepository.findByName(tagname).orElse(null);
         if (tag == null) {
             tagRepository.save(new Tag(tagname));
             return RestfulResult.successResult();
         }
-        return new RestfulResult(400, "already existed");
+        return new RestfulResult(StatusCode.REQUEST_ERROR, "already existed");
+    }
+
+    @PostMapping("/tag/edit/{id:[0-9]+}")
+    public RestfulResult editTag(@PathVariable("id") Long id, @RequestBody Tag tag) {
+        Tag _tag = tagRepository.findById(id).orElse(null);
+        if (_tag == null){
+            return new RestfulResult(StatusCode.NOT_FOUND, "标签不存在");
+        }
+        if (tag.getName() == null || tag.getName().length() == 0){
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "need input tagname");
+        }
+        Tag _tagName = tagRepository.findByName(tag.getName()).orElse(null);
+        if (_tagName == null || !_tagName.getId().equals(_tag.getId())){
+            _tag.setName(tag.getName());
+            tagRepository.save(_tag);
+            return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS);
+        }
+        return new RestfulResult(StatusCode.REQUEST_ERROR, "标签名已存在");
     }
 
     @Data
