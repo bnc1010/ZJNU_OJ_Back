@@ -42,9 +42,8 @@ public class AuthorityManagerImpl implements AuthorityManager {
                 if (optional.isPresent() && optional != null){
                     Permission permission = optional.get();
                     if (permission.getUrl() != null){
-//                        System.out.println(target + "   " +permission.getUrl());
                         if(target.matches(permission.getUrl())){
-                            System.out.println(target + " is ok");
+//                            System.out.println(target + " is ok");
                             return true;
                         }
                     }

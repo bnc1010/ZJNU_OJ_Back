@@ -4,6 +4,7 @@ import cn.edu.zjnu.acm.authorization.manager.AuthorityManager;
 import cn.edu.zjnu.acm.authorization.manager.impl.RedisTokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
@@ -49,6 +50,7 @@ public class DMZController {
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     @ResponseBody
     @IgnoreSecurity
+    @LogsOfUser
     public RestfulResult login(@RequestBody User requestUser) {
         RestfulResult restfulResult = new RestfulResult();
         User user = null;
@@ -87,6 +89,7 @@ public class DMZController {
     @ResponseBody
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     @IgnoreSecurity
+    @LogsOfUser
     public RestfulResult add(@RequestBody UserVO requestUser) {
         RestfulResult restfulResult = new RestfulResult();
         User user = new User();
@@ -118,6 +121,7 @@ public class DMZController {
     @ApiOperation(value = "用户登出", notes = "参数：token")
     @RequestMapping(value = "/logout", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfUser
     public RestfulResult logout(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);

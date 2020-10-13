@@ -1,5 +1,6 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.common.annotation.LogsOfAdmin;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.ve.ProblemSetVO;
 import cn.edu.zjnu.acm.common.ve.ProblemVO;
@@ -93,6 +94,7 @@ public class AdminController {
 
     @ApiOperation(value = "系统设置", notes = "系统设置", produces = "application/json")
     @PostMapping("/config")
+    @LogsOfAdmin
     public RestfulResult updateConfig(@RequestBody UpdateConfig updateConfig) {
         log.info(updateConfig.toString());
         config.setLeastScoreToSeeOthersCode(updateConfig.getLeastScoreToSeeOthersCode());
@@ -141,6 +143,7 @@ public class AdminController {
 
     @ApiOperation(value = "题目管理", notes = "题目管理", produces = "application/json")
     @GetMapping("/problem")
+    @LogsOfAdmin
     public RestfulResult getAllProblems(@RequestParam(value = "page", defaultValue = "0") int page,
                                         @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
                                         @RequestParam(value = "search", defaultValue = "") String search) {
@@ -152,6 +155,7 @@ public class AdminController {
 
     @ApiOperation(value = "比赛管理", notes = "比赛管理", produces = "application/json")
     @GetMapping("/contest")
+    @LogsOfAdmin
     public RestfulResult getAllContest(@RequestParam(value = "page", defaultValue = "0") int page,
                                        @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
                                        @RequestParam(value = "search", defaultValue = "") String search) {
@@ -164,6 +168,7 @@ public class AdminController {
     }
 
     @PostMapping("/problem/insert")
+    @LogsOfAdmin
     public RestfulResult addProblem(@RequestBody ProblemVO problem) {
         if (problemService.isProblemRepeated(problem.getTitle())) {
             return new RestfulResult(StatusCode.HTTP_FAILURE, "Problem name already existed!");
@@ -180,6 +185,7 @@ public class AdminController {
 
     @ApiOperation(value = "更新题目", notes = "更新题目", produces = "application/json")
     @PostMapping("/problem/edit/{pid:[0-9]+}")
+    @LogsOfAdmin
     public RestfulResult updateProblem(@RequestBody ProblemVO problem, @PathVariable("pid") Long pid) {
         Problem p = problemService.getProblemById(pid);
         if (null == p) {
@@ -232,22 +238,20 @@ public class AdminController {
 
 
     @GetMapping("/problemset")
+    @LogsOfAdmin
     public RestfulResult getProblemSetList(@RequestParam(value = "page", defaultValue = "0") int page,
                                        @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
                                        @RequestParam(value = "search", defaultValue = "") String search) {
         page = Math.max(page, 0);
         Page<ProblemSet> problemSetPage = null;
-        System.out.println("debug1");
         try{
             if (search != null && search.length() > 0) {
                 int spl = search.lastIndexOf("$$");
-                System.out.println("debug2");
                 if (spl >= 0) {
                     String tags = search.substring(spl + 2);
                     search = search.substring(0, spl);
                     String[] tagNames = tags.split("\\,");
                     List<ProblemSet> _problemSet = problemSetService.getAllProblemSet(0, 1, search).getContent();
-                    System.out.println("debug3");
                     problemSetPage = problemSetService.getByTagName(page, pagesize, Arrays.asList(tagNames), _problemSet);
                 } else {
                     problemSetPage = problemSetService.getAllProblemSet(page, pagesize, search);
@@ -255,8 +259,6 @@ public class AdminController {
             } else {
                 problemSetPage = problemSetService.getAllProblemSet(page, pagesize, "");
             }
-            System.out.println("debug4");
-            System.out.println(problemSetPage.getContent().get(0).getTags().toString());
         }
         catch (Exception e){
             e.printStackTrace();
@@ -266,6 +268,7 @@ public class AdminController {
     }
 
     @PostMapping("/problemset/insert")
+    @LogsOfAdmin
     public RestfulResult addProblemSet(@RequestBody ProblemSetVO problemSetVO) {
         if (problemSetService.isProblemSetRepeated(problemSetVO.getTitle())) {
             return new RestfulResult(StatusCode.HTTP_FAILURE, "ProblemSet name already existed!");
@@ -289,12 +292,12 @@ public class AdminController {
     }
 
     @PostMapping("/problemset/update/{id:[0-9]+}")
+    @LogsOfAdmin
     public RestfulResult editProblemSet(@PathVariable("id") Long id, @RequestBody ProblemSetVO problemSetVO){
         ProblemSet problemSet = problemSetService.getProblemSetById(id);
         if (problemSet == null){
             return new RestfulResult(StatusCode.NOT_FOUND, "题目集不存在");
         }
-        System.out.println(problemSet.toString());
         if (!problemSetVO.getTitle().equals(problemSet.getTitle()) && problemSetService.isProblemSetRepeated(problemSetVO.getTitle())) {
             return new RestfulResult(StatusCode.HTTP_FAILURE, "ProblemSet name already existed!");
         }
@@ -315,6 +318,7 @@ public class AdminController {
 
 
     @GetMapping("/correctData")
+
     public String calculateData() {
         try {
             User user = (User) session.getAttribute("currentUser");
@@ -429,11 +433,13 @@ public class AdminController {
     }
 
     @GetMapping("/tag")
+    @LogsOfAdmin
     public RestfulResult getAllTags() {
         return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, problemService.getAllTags());
     }
 
     @PostMapping("/tag/add")
+    @LogsOfAdmin
     public RestfulResult addTag(@RequestBody Map<String, String> tagmap) {
         String tagname = tagmap.getOrDefault("tagname", "");
         if (tagname.length() == 0) {
@@ -448,6 +454,7 @@ public class AdminController {
     }
 
     @PostMapping("/tag/edit/{id:[0-9]+}")
+    @LogsOfAdmin
     public RestfulResult editTag(@PathVariable("id") Long id, @RequestBody Tag tag) {
         Tag _tag = tagRepository.findById(id).orElse(null);
         if (_tag == null){

@@ -2,6 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
@@ -14,6 +15,7 @@ import cn.edu.zjnu.acm.common.exception.ForbiddenException;
 import cn.edu.zjnu.acm.common.exception.NeedLoginException;
 import cn.edu.zjnu.acm.common.exception.NotFoundException;
 import cn.edu.zjnu.acm.service.ContestService;
+import cn.edu.zjnu.acm.service.RedisService;
 import cn.edu.zjnu.acm.service.TeamService;
 import cn.edu.zjnu.acm.service.UserService;
 import cn.edu.zjnu.acm.util.RestfulResult;
@@ -38,13 +40,15 @@ public class TeamController {
     private final ContestService contestService;
     private final TokenManager tokenManager;
     private final HttpSession session;
+    private final RedisService redisService;
 
-    public TeamController(HttpSession session, TokenManager tokenManager, TeamService teamService, UserService userService, ContestService contestService) {
+    public TeamController(RedisService redisService, HttpSession session, TokenManager tokenManager, TeamService teamService, UserService userService, ContestService contestService) {
         this.teamService = teamService;
         this.userService = userService;
         this.contestService = contestService;
         this.tokenManager = tokenManager;
         this.session = session;
+        this.redisService = redisService;
     }
 
     @GetMapping("")
@@ -67,11 +71,12 @@ public class TeamController {
     }
 
     @GetMapping("/myteams")
+    @LogsOfUser
     public RestfulResult getMyTeam(@RequestParam(value = "page", defaultValue = "0") int page, @RequestParam(value = "pagesize", defaultValue = "20") int pagesize, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
         Map res = null;
         try{
-            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
             User user = userService.getUserById(tokenModel.getUserId());
             res = teamService.teamsOfUser(user, page, pagesize);
         }
@@ -95,7 +100,7 @@ public class TeamController {
     @GetMapping("/showapply/{teamid:[0-9]+}")
     public RestfulResult showApply(@PathVariable(value = "teamid") Long teamid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Team team = teamService.getTeamById(teamid);
         int status = isUserPermitted(team, Teammate.MANAGER, user);
@@ -122,7 +127,7 @@ public class TeamController {
     @DeleteMapping("/delete/teammate/{id:[0-9]+}")
     public RestfulResult deleteTeammate(@PathVariable(value = "id") Long id, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Teammate teammate = teamService.getTeammateById(id);
         if (teammate == null) {
@@ -158,7 +163,7 @@ public class TeamController {
     @PostMapping("/add/manager/{id:[0-9]+}")
     public RestfulResult addManager(@PathVariable(value = "id") Long tid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         int status = updateTeammateLevel(tid, Teammate.MANAGER, user);
         if (status == 403){
@@ -170,7 +175,7 @@ public class TeamController {
     @PostMapping("/remove/manager/{id:[0-9]+}")
     public RestfulResult removeManager(@PathVariable(value = "id") Long tid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         int status = updateTeammateLevel(tid, Teammate.MEMBER, user);
         if (status == 403){
@@ -182,7 +187,7 @@ public class TeamController {
     @PostMapping("/apply/{teamid:[0-9]+}")
     public RestfulResult applyTeam(@PathVariable(value = "teamid") Long tid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Team team = teamService.getTeamById(tid);
         if (team == null) {
@@ -210,7 +215,7 @@ public class TeamController {
     @PostMapping("/apply/approve/{applyid:[0-9]+}")
     public RestfulResult applyApproveTeam(@PathVariable(value = "applyid") Long applyid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         TeamApply teamApply = null;
         try{
@@ -234,7 +239,7 @@ public class TeamController {
     @PostMapping("/apply/reject/{applyid:[0-9]+}")
     public RestfulResult applyRejectTeam(@PathVariable(value = "applyid") Long applyid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         TeamApply teamApply = null;
         try{
@@ -258,7 +263,7 @@ public class TeamController {
     @GetMapping("/{teamid:[0-9]+}")
     public RestfulResult teamIndex(@PathVariable(value = "teamid") Long teamid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Team team = teamService.getTeamById(teamid);
         if (team == null)
@@ -307,7 +312,7 @@ public class TeamController {
     @GetMapping("/invite/{code:[A-Z]{18}}")
     public RestfulResult doInviteLink(@PathVariable(value = "code") String code, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Long tid = (long) decode(code);
         Team team = teamService.getTeamById(tid);
@@ -322,7 +327,7 @@ public class TeamController {
                                            @RequestParam(value = "attend") String attend,
                                            HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Team team = teamService.getTeamById(teamid);
         int status = isUserPermitted(team, Teammate.MASTER, user);
@@ -343,7 +348,7 @@ public class TeamController {
     @PostMapping("/create")
     public RestfulResult createTeam(@Validated @RequestBody Team team, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
             return new RestfulResult(StatusCode.NO_PRIVILEGE, "permission denied");
@@ -366,7 +371,7 @@ public class TeamController {
     @GetMapping("/leave/{teamid:[0-9]+}")
     public RestfulResult leaveTeam(@PathVariable("teamid") Long teamId, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
-        TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(tk));
+        TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Team team = teamService.getTeamById(teamId);
         if (!teamService.isUserInTeam(user, team)) {

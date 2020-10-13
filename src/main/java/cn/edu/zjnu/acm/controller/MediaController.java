@@ -3,6 +3,7 @@ package cn.edu.zjnu.acm.controller;
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
@@ -60,6 +61,7 @@ public class MediaController {
     }
 
     @PostMapping("/upload")
+    @LogsOfUser
     public RestfulResult uploadImage(@RequestParam("file") MultipartFile multipartFile, HttpServletRequest request) {
         if (multipartFile.isEmpty() || StringUtils.isEmpty(multipartFile.getOriginalFilename())) {
             return new RestfulResult(StatusCode.NOT_FOUND, "no image");

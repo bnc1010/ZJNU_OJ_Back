@@ -3,6 +3,7 @@ package cn.edu.zjnu.acm.controller;
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
@@ -55,6 +56,7 @@ public class ProblemController {
 
     @IgnoreSecurity
     @GetMapping("")
+    @LogsOfUser
     public RestfulResult showProblemList(@RequestParam(value = "page", defaultValue = "0") int page,
                                          @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
                                          @RequestParam(value = "search", defaultValue = "") String search) {
@@ -90,6 +92,7 @@ public class ProblemController {
         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problemPage);
     }
 
+    @LogsOfUser
     @GetMapping("/{id:[0-9]+}")
     public RestfulResult showProblem(@PathVariable Long id) {
         Problem problem = problemService.getActiveProblemById(id);
@@ -114,6 +117,7 @@ public class ProblemController {
     }
 
     @PostMapping("/submit/{id:[0-9]+}")
+    @LogsOfUser
     public RestfulResult submitProblem(@PathVariable("id") Long id,
                                 @RequestBody SubmitCodeObject submitCodeObject,
                                 HttpServletRequest request) {

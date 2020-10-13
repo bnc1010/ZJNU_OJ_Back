@@ -2,6 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
@@ -67,6 +68,7 @@ public class StatusController {
     }
 
     @GetMapping("")
+    @LogsOfUser
     public RestfulResult searchStatus(@RequestParam(value = "page", defaultValue = "0") Integer page,
                                       @RequestParam(value = "pagesize", defaultValue = "20") Integer pagesize,
                                       @RequestParam(value = "user", defaultValue = "") String username,
@@ -104,6 +106,7 @@ public class StatusController {
     }
 
     @GetMapping("/view/{id:[0-9]+}")
+    @LogsOfUser
     public RestfulResult restfulShowSourceCode(@PathVariable(value = "id") Long id, HttpServletRequest request) {
         Solution solution = null;
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -139,6 +142,7 @@ public class StatusController {
     }
 
     @PostMapping("/share/{id:[0-9]+}")
+    @LogsOfUser
     public RestfulResult setShare(@PathVariable("id") Long id, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         TokenModel tokenModel = redisService.getToken(tk);

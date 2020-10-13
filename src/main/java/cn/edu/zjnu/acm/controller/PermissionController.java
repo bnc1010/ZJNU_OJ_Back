@@ -3,6 +3,7 @@ package cn.edu.zjnu.acm.controller;
 import cn.edu.zjnu.acm.authorization.manager.AuthorityManager;
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.annotation.LogsOfAdmin;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.exception.AuthorityException;
@@ -54,8 +55,6 @@ public class PermissionController {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         TokenModel tokenModel = redisService.getToken(tk);
-        System.out.println(tk);
-        System.out.println(tokenModel.toString());
         try {
             userOperationService.checkOperationToUserByToken(tokenModel,-1);
             String [] pus = tokenModel.getPermissionCode().split("&");
@@ -79,6 +78,7 @@ public class PermissionController {
     @ApiOperation(value = "查询角色拥有的权限", notes = "参数：token")
     @RequestMapping(value = "get", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfAdmin
     public RestfulResult getPermissionByRoleId(@RequestBody RoleVO requestRole, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -100,6 +100,7 @@ public class PermissionController {
     @ApiOperation(value = "添加权限",notes ="参数：Name,Url,Type,token。添加权限后系统管理员角色权限增加，将更新token，回传一个新token")
     @RequestMapping(value = "add", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfAdmin
     public RestfulResult addPermission(@RequestBody PermissionVO requestPermission, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -140,6 +141,7 @@ public class PermissionController {
     @ApiOperation(value = "删除权限", notes = "参数：pId")
     @RequestMapping(value = "delete", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfAdmin
     public RestfulResult deletePermission(@RequestBody PermissionVO requestPermission) {
         RestfulResult restfulResult = new RestfulResult();
         try {
@@ -156,6 +158,7 @@ public class PermissionController {
     @ApiOperation(value = "修改权限", notes = "参数：Id，Name,Url,Type")
     @RequestMapping(value = "update", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfAdmin
     public RestfulResult updatePermission(@RequestBody PermissionVO requestPermission) {
         RestfulResult restfulResult = new RestfulResult();
         Permission permission = new Permission();

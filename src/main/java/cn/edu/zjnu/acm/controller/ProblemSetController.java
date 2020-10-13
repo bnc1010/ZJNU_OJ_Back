@@ -3,6 +3,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.entity.oj.ProblemSet;
 import cn.edu.zjnu.acm.repo.user.UserProblemRepository;
@@ -31,6 +32,7 @@ public class ProblemSetController {
 
     @IgnoreSecurity
     @GetMapping("")
+    @LogsOfUser
     public RestfulResult showProblemSetList(@RequestParam(value = "page", defaultValue = "0") int page,
                                          @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
                                          @RequestParam(value = "search", defaultValue = "") String search) {
@@ -59,6 +61,7 @@ public class ProblemSetController {
     }
 
     @GetMapping("/{id:[0-9]+}")
+    @LogsOfUser
     public RestfulResult showProblem(@PathVariable Long id) {
         ProblemSet problemSet = problemSetService.getActiveProblemById(id);
         if (problemSet == null)

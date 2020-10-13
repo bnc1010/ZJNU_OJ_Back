@@ -2,6 +2,8 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.annotation.LogsOfAdmin;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
@@ -67,8 +69,13 @@ public class UserController{
     @RequestMapping(value = "/get", method = RequestMethod.POST)
     public RestfulResult getUser(@RequestBody UserVO requestUser) {
         RestfulResult resultBean = new RestfulResult();
+        if (requestUser.getId() == null){
+            return new RestfulResult(StatusCode.REQUEST_ERROR, "参数错误");
+        }
         try {
             User user = userService.getUserById(requestUser.getId());
+            user.setPassword(null);
+            user.setSalt(null);
             resultBean.setData(user);
         } catch (Exception e) {
             resultBean.setCode(StatusCode.HTTP_FAILURE);
@@ -81,6 +88,7 @@ public class UserController{
     @ApiOperation(value = "新增User", notes = "参数:userName,password")
     @ResponseBody
     @RequestMapping(value = "/add", method = RequestMethod.POST)
+    @LogsOfAdmin
     public RestfulResult add(@RequestBody User user) {
         RestfulResult resultBean = new RestfulResult();
         try{
@@ -97,6 +105,7 @@ public class UserController{
     @ApiOperation(value = "根据id查询指定的User", notes = "参数:uId")
     @ResponseBody
     @RequestMapping(value = "/roles", method = RequestMethod.POST)
+    @LogsOfAdmin
     public RestfulResult getUserRole(@RequestBody UserVO requestUser,HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -117,6 +126,7 @@ public class UserController{
     @ApiOperation(value = "更新指定的User", notes = "uId,需要更改的字段")
     @ResponseBody
     @RequestMapping(value = "/update", method = RequestMethod.POST)
+    @LogsOfAdmin
     public RestfulResult update(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -144,6 +154,7 @@ public class UserController{
     @ApiOperation(value = "根据id物理删除指定的Role，需谨慎！", notes = "参数：uIds,token")
     @ResponseBody
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
+    @LogsOfAdmin
     public RestfulResult delete(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -172,6 +183,7 @@ public class UserController{
     @ApiOperation(value = "根据uid赋角色", notes = "参数：uId，roleCode数组,token")
     @ResponseBody
     @RequestMapping(value = "/grant", method = RequestMethod.POST)
+    @LogsOfAdmin
     public RestfulResult grantUser(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -255,6 +267,7 @@ public class UserController{
     @ApiOperation(value = "根据uid去角色", notes = "参数：uId，roleCode数组,token")
     @ResponseBody
     @RequestMapping(value = "/drop", method = RequestMethod.POST)
+    @LogsOfAdmin
     public RestfulResult dropRole(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -315,6 +328,7 @@ public class UserController{
     @ApiOperation(value = "根据uId重置密码", notes = "参数：uId,token")
     @ResponseBody
     @RequestMapping(value = "/reset", method = RequestMethod.POST)
+    @LogsOfAdmin
     public RestfulResult RestPassword(@RequestBody UserVO requestUser, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);

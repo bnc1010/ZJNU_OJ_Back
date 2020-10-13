@@ -31,8 +31,6 @@ public class JudgeController {
     @IgnoreSecurity
     @PostMapping("/judge/callback")
     public String judgeCallback(@RequestBody JudgeController.JudgeCallback callback) {
-        System.out.println("*******************************");
-        System.out.println(callback.toString());
         try {
             log.info(callback.toString());
             Solution solution = solutionService.getSolutionById(callback.getSubmit_id());

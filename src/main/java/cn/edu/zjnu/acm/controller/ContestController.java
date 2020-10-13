@@ -2,6 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.entity.User;
@@ -52,6 +53,7 @@ public class ContestController {
     }
 
     @GetMapping("")
+    @LogsOfUser
     public RestfulResult showContests(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
@@ -96,6 +98,7 @@ public class ContestController {
 //    }
 
     @PostMapping("/gate/{cid:[0-9]+}")
+    @LogsOfUser
     public RestfulResult contestReady(@PathVariable("cid") Long cid, HttpServletRequest request, @RequestBody ContestVO contestVO) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         try{
@@ -236,18 +239,15 @@ public class ContestController {
     }
 
     @PostMapping("/{cid:[0-9]+}")
+    @LogsOfUser
     public RestfulResult getContestDetail(@PathVariable("cid") Long cid, @RequestBody ContestVO contestVO, HttpServletRequest request) {
-        System.out.println("debug1");
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
         Contest c = contestService.getContestByIdTwoType(cid, true);
-        System.out.println("debug2");
         if (c == null)
             return new RestfulResult(StatusCode.NOT_FOUND, "contest not found");
         boolean status = contestService.checkUserInContest(user.getId(), cid);
-        System.out.println("debug3");
-        System.out.println(status);
         if (!status) {
             c.clearLazyRoles();
             c.setProblems(null);
@@ -291,6 +291,7 @@ public class ContestController {
     }
 
     @PostMapping("/submit/{pid:[0-9]+}/{cid:[0-9]+}")
+    @LogsOfUser
     public RestfulResult submitProblemInContest(@PathVariable("pid") Long pid,
                                          @PathVariable("cid") Long cid,
                                          HttpServletRequest request,
@@ -433,6 +434,7 @@ public class ContestController {
     }
 
     @PostMapping("/create")
+    @LogsOfUser
     public RestfulResult insertContestAction(@RequestBody ContestVO postContest) {
         TokenModel tokenModel = redisService.getToken(postContest.getToken());
         try {

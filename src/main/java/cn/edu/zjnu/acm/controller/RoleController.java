@@ -2,6 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.annotation.LogsOfAdmin;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
@@ -89,6 +90,7 @@ public class RoleController{
     @ApiOperation(value = "添加角色",notes ="参数：roleName角色名, rType角色类型，rRank")
     @RequestMapping(value = "add", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfAdmin
     public RestfulResult addRole(@RequestBody RoleVO requestRole) {
         RestfulResult restfulResult = new RestfulResult();
         try {
@@ -109,6 +111,7 @@ public class RoleController{
     @ApiOperation(value = "删除角色", notes = "参数：rId")
     @RequestMapping(value = "delete", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfAdmin
     public RestfulResult deleteRole(@RequestBody RoleVO requestRole) {
         RestfulResult restfulResult = new RestfulResult();
         try {
@@ -146,6 +149,7 @@ public class RoleController{
     @ApiOperation(value = "给角色赋权限", notes = "参数：id,权限码数组pids,token")
     @RequestMapping(value = "grant", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfAdmin
     public RestfulResult grantPrivilege(@RequestBody RoleVO requestRole, HttpServletRequest request) {
         RestfulResult restfulResult = new RestfulResult();
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
@@ -186,6 +190,7 @@ public class RoleController{
     @ApiOperation(value = "给角色去权限", notes = "参数：id,pids")
     @RequestMapping(value = "/drop", method = RequestMethod.POST)
     @ResponseBody
+    @LogsOfAdmin
     public RestfulResult drop(@RequestBody RoleVO requestRole) {
         RestfulResult restfulResult = new RestfulResult();
         try {
