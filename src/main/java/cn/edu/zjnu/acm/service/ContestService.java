@@ -69,14 +69,12 @@ public class ContestService {
         redisService.insertContest(contest);
     }
 
-    @Transactional
     public Contest getContestById(Long id, boolean isAllFields) {
         if (isAllFields) {
             try {
                 return fulfillContest(contestRepository.findById(id).get());
             } catch (Exception e) {
                 return null;
-//                e.printStackTrace();
             }
         }
         return contestRepository.findById(id).orElse(null);

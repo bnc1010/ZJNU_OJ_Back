@@ -34,7 +34,6 @@ public class JudgeController {
         try {
             log.info(callback.toString());
             Solution solution = solutionService.getSolutionById(callback.getSubmit_id());
-            log.info(solution.toString());
             if (solution == null) {
                 return "no this id";
             }
@@ -78,6 +77,7 @@ public class JudgeController {
             judgeService.update(solution);
             return "success";
         } catch (Exception e) {
+            e.printStackTrace();
             throw new NotFoundException();
         }
     }

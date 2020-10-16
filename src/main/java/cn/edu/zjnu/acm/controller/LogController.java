@@ -27,7 +27,6 @@ public class LogController {
         this.adminLogService = adminLogService;
     }
 
-    @IgnoreSecurity
     @GetMapping("commonlog")
     public RestfulResult getCommonLog(@RequestParam(value = "page", defaultValue = "0") int page,
                                       @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
@@ -50,7 +49,6 @@ public class LogController {
         return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, commonLogsPage);
     }
 
-    @IgnoreSecurity
     @GetMapping("adminlog")
     public RestfulResult getAdminLog(@RequestParam(value = "page", defaultValue = "0") int page,
                                       @RequestParam(value = "pagesize", defaultValue = "20") int pagesize,
@@ -72,5 +70,4 @@ public class LogController {
         }
         return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, adminLogsPage);
     }
-
 }

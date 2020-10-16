@@ -5,6 +5,7 @@ import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
+import cn.edu.zjnu.acm.common.utils.List2Page;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.*;
 import cn.edu.zjnu.acm.common.exception.NotFoundException;
@@ -17,6 +18,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -408,13 +410,26 @@ public class ContestController {
             }
             return solutions;
         } catch (Exception e) {
+
         }
         throw new NotFoundException();
     }
 
+    /**
+     *
+     * @param cid
+     * @param page
+     * @param pagesize
+     * @return
+     *
+     * to: 需要优化.
+     */
+
     @GetMapping("/ranklist/{cid:[0-9]+}")
-    @Cacheable(value = "contestRank", key = "#cid")
-    public RestfulResult getRankOfContest(@PathVariable Long cid) {
+    public RestfulResult getRankOfContest(@PathVariable Long cid,
+                                          @RequestParam(value = "page", defaultValue = "0") int page,
+                                          @RequestParam(value = "pagesize", defaultValue = "20") int pagesize) {
+        page = Math.max(page, 0);
         try {
             @NotNull Contest contest = contestService.getContestById(cid, true);
             contest.setTeam(null);
@@ -424,8 +439,9 @@ public class ContestController {
                 rank.update(solutions.get(i));
             }
             Map<String, Object> result = new HashMap<>();
+            Page<Rank.RankRow> rankRowPage = List2Page.listToPage(rank.getRows(), PageRequest.of(page, pagesize));
             result.put("problemsNumber", rank.getProblemsNumber());
-            result.put("rows", rank.getRows());
+            result.put("rows", rankRowPage);
             return new RestfulResult(StatusCode.HTTP_SUCCESS, "success",result);
         } catch (Exception e) {
             e.printStackTrace();
