@@ -19,9 +19,11 @@ import cn.edu.zjnu.acm.service.*;
 import cn.edu.zjnu.acm.util.RestfulResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
@@ -171,12 +173,11 @@ public class ProblemController {
     public RestfulResult getProblemArticle(@PathVariable Long pid, HttpServletRequest request) {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         TokenModel tokenModel = redisService.getToken(tk);
-                Problem problem = checkProblemExist(pid);
-
+        Problem problem = checkProblemExist(pid);
         User user = userService.getUserById(tokenModel.getUserId());
         if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {//a5是oj管理员
             if (!problemService.isUserAcProblem(user, problem)) {
-                throw new ForbiddenException("Access after passing the question");
+                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Access after passing the question");
             }
         }
         List<Analysis> analyses = problemService.getAnalysisByProblem(problem);
@@ -184,58 +185,86 @@ public class ProblemController {
         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", analyses);
     }
 
-//    @PostMapping("/analysis/post/{pid:[0-9]+}")
-//    public RestfulResult postAnalysis(@PathVariable Long pid,
-//                                      @SessionAttribute User currentUser,
-//                                      @RequestBody @Validated Analysis analysis) {
-//        Problem problem = checkProblemExist(pid);
-//        if (userService.getUserPermission(currentUser) == -1) {
-//            if (!problemService.isUserAcProblem(currentUser, problem)) {
-//                throw new ForbiddenException("Access after passing the question");
-//            }
-//        }
-//        analysis.setUser(currentUser);
-//        analysis.setComment(null);
-//        analysis.setPostTime(Instant.now());
-//        analysis.setProblem(problem);
-//        problemService.postAnalysis(analysis);
-//        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", null);
-//    }
-//
-//    @GetMapping("/analysis/edit/{aid:[0-9]+}")
-//    public RestfulResult getOneAnalysis(@PathVariable Long aid, @SessionAttribute User currentUser) {
-//        Analysis analysis = problemService.getAnalysisById(aid);
-//        if (analysis == null) {
-//            throw new NotFoundException("Analysis not found");
-//        }
-//        if (userService.getUserPermission(currentUser) == -1) {
-//            if (analysis.getUser().getId() != currentUser.getId()) {
-//                throw new ForbiddenException("Permission denied");
-//            }
-//        }
-//        analysis.getUser().hideInfo();
-//        analysis.setProblem(null);
-//        analysis.setComment(null);
-//        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", analysis);
-//    }
-//
-//    @PostMapping("/analysis/edit/{aid:[0-9]+}")
-//    public RestfulResult editAnalysis(@PathVariable Long aid,
-//                                      @SessionAttribute User currentUser,
-//                                      @RequestBody @Validated Analysis analysis) {
-//        Analysis ana = problemService.getAnalysisById(aid);
-//        if (analysis == null) {
-//            throw new NotFoundException("Analysis not found");
-//        }
-//        if (userService.getUserPermission(currentUser) == -1) {
-//            if (ana.getUser().getId() != currentUser.getId()) {
-//                throw new ForbiddenException("Permission denied");
-//            }
-//        }
-//        ana.setText(analysis.getText());
-//        problemService.postAnalysis(ana);
-//        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", null);
-//    }
+    @GetMapping("/analysis/get/{aid:[0-9]+}")
+    public RestfulResult getArticleById(@PathVariable Long aid, HttpServletRequest request) {
+        Analysis analysis = problemService.getAnalysisById(aid);
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+        if (analysis == null) {
+            return new RestfulResult(StatusCode.NOT_FOUND, "Analysis not found");
+        }
+        Problem problem = checkProblemExist(analysis.getProblem().getId());
+        User user = userService.getUserById(tokenModel.getUserId());
+        if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {//a5是oj管理员
+            if (!problemService.isUserAcProblem(user, problem)) {
+                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Access after passing the question");
+            }
+        }
+        analysis.setProblem(null);
+        analysis.setComment(null);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", analysis);
+    }
+
+    @PostMapping("/analysis/post/{pid:[0-9]+}")
+    public RestfulResult postAnalysis(@PathVariable Long pid,
+                                      HttpServletRequest request,
+                                      @RequestBody Analysis analysis) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+        Problem problem = checkProblemExist(pid);
+        User currentUser = userService.getUserById(tokenModel.getUserId());
+        if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
+            if (!problemService.isUserAcProblem(currentUser, problem)) {
+                return new RestfulResult(StatusCode.REQUEST_ERROR, "Access after passing the question");
+            }
+        }
+        analysis.setUser(currentUser);
+        analysis.setComment(null);
+        analysis.setPostTime(Instant.now());
+        analysis.setProblem(problem);
+        problemService.postAnalysis(analysis);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS);
+
+    }
+
+    @GetMapping("/analysis/edit/{aid:[0-9]+}")
+    public RestfulResult getOneAnalysis(@PathVariable Long aid, HttpServletRequest request) {
+        Analysis analysis = problemService.getAnalysisById(aid);
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+        if (analysis == null) {
+            return new RestfulResult(StatusCode.NOT_FOUND, "Analysis not found");
+        }
+        if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
+            if (analysis.getUser().getId() != tokenModel.getUserId()) {
+                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied");
+            }
+        }
+        analysis.getUser().hideInfo();
+        analysis.setProblem(null);
+        analysis.setComment(null);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", analysis);
+    }
+
+    @PostMapping("/analysis/edit/{aid:[0-9]+}")
+    public RestfulResult editAnalysis(@PathVariable Long aid,
+                                      HttpServletRequest request,
+                                      @RequestBody Analysis analysis) {
+        Analysis ana = problemService.getAnalysisById(aid);
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+        if (analysis == null) {
+            return new RestfulResult(StatusCode.NOT_FOUND, "Analysis not found");
+        }
+        if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
+            if (ana.getUser().getId() != tokenModel.getUserId()) {
+                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied");
+            }
+        }
+        ana.setText(analysis.getText());
+        problemService.postAnalysis(ana);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
+    }
 
 //    @PostMapping("/analysis/post/comment/{aid:[0-9]+}")
 //    public RestfulResult postAnalysisComment(@PathVariable Long aid,

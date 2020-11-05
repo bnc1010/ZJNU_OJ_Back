@@ -6,7 +6,9 @@ import lombok.Data;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -15,7 +17,7 @@ public class Analysis {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Size(min = 15, max = 5000)
+    @Size(min = 10, max = 5000)
     @Column(nullable = false, columnDefinition = "LONGTEXT DEFAULT ''")
     private String text;
     @ManyToOne(optional = false)
@@ -29,6 +31,10 @@ public class Analysis {
     private List<AnalysisComment> comment;
 
     public Analysis() {
+    }
+
+    public String getNormalPostTime() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date.from(postTime));
     }
 
     public Analysis(@Size(min = 15, max = 5000) String text, User user, Problem problem, Instant postTime, List<AnalysisComment> comment) {
