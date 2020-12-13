@@ -6,6 +6,7 @@ import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.utils.Base64Util;
+import cn.edu.zjnu.acm.common.ve.UserVO;
 import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Contest;
 import cn.edu.zjnu.acm.entity.oj.Team;
@@ -254,6 +255,32 @@ public class TeamController {
         }
         catch (Exception e){
             return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
+        }
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS);
+    }
+
+    @GetMapping("/batch/{teamid:[0-9]}")
+    public RestfulResult batchInviteUsers(@PathVariable(value = "teamid") Long teamId, HttpServletRequest request,
+                                          @RequestParam("username") String username){
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+
+        Team team = teamService.getTeamById(teamId);
+        if (team == null) {
+            return new RestfulResult(StatusCode.NOT_FOUND, "not in the team");
+        }
+        if (userService.getUserPermission(tokenModel.getPermissionCode(),"a5") == -1 && userService.getUserPermission(tokenModel.getPermissionCode(), "a15") ==-1){
+            return new RestfulResult(StatusCode.NO_PRIVILEGE, "permission denied");
+        }
+
+        User user = userService.getUserByUsername(username);
+        if (user == null){
+            return new RestfulResult(StatusCode.NOT_FOUND, "user not found");
+        }
+
+        Teammate teammate = teamService.addTeammate(user, team);
+        if (teammate == null){
+            return new RestfulResult(StatusCode.HTTP_FAILURE, RestfulResult.ERROR);
         }
         return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS);
     }
