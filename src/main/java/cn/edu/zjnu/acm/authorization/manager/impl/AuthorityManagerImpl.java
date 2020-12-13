@@ -104,13 +104,16 @@ public class AuthorityManagerImpl implements AuthorityManager {
         String [] roleCodes = roleCode.split("&");
         ArrayList res = new ArrayList();
         try {
-            boolean isRoot=false, isAdmin=false,isCommon=false;
+            boolean isRoot=false, isAdmin=false, isCommon=false, isTeacher=false;
             for (String rc : roleCodes) {
                 if (rc.equals("ru:")) {
                     continue;
                 }
                 else if (rc.indexOf('r')!=-1){
                     isRoot=true;
+                }
+                else if (rc.contains("a5")){
+                    isTeacher=true;
                 }
                 else if (rc.indexOf('a')!=-1){
                     isAdmin=true;
@@ -127,6 +130,9 @@ public class AuthorityManagerImpl implements AuthorityManager {
             }
             if (isCommon){
                 res.add("common");
+            }
+            if (isTeacher){
+                res.add("teacher");
             }
         }
         catch (Exception e){

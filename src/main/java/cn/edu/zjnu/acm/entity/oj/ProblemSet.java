@@ -1,12 +1,9 @@
 package cn.edu.zjnu.acm.entity.oj;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import cn.edu.zjnu.acm.entity.User;
 import lombok.Data;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
-import java.util.List;
 import java.util.Set;
 
 @Data
@@ -21,6 +18,10 @@ public class ProblemSet {
     private String description = "";
     @Column(nullable = false, columnDefinition = "bit(1) default 0")
     private Boolean active = false;
+    @Column(nullable = false, columnDefinition = "bit(1) default 1")
+    private Boolean isPrivate;
+    @ManyToOne(optional = false)
+    private User creator;
     @ManyToMany(fetch = FetchType.EAGER)
     private Set<Problem> problems;
     @ManyToMany(fetch = FetchType.EAGER)

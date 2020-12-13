@@ -12,4 +12,5 @@ public class ProblemSetVO {
     private Boolean active;
     private Set<Long> problems;
     private String [] tags;
+    private Boolean isPrivate;
 }

@@ -24,6 +24,8 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
     Long countAllByCreator(User user);
 
+    Page<Team> findByCreator(User user, Pageable pageable);
+
     @Transactional
     @Modifying
     @Query(nativeQuery = true,

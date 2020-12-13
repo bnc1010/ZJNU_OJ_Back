@@ -2,6 +2,7 @@ package cn.edu.zjnu.acm.controller;
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
 import cn.edu.zjnu.acm.authorization.model.TokenModel;
+import cn.edu.zjnu.acm.common.annotation.LogsOfAdmin;
 import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
 import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
@@ -85,19 +86,25 @@ public class ContestController {
         return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
     }
 
-//    @GetMapping("/clone/{id:[0-9]+}")
-//    public RestfulResult cloneContest(@PathVariable Long id) {
-//        Contest c = contestService.getContestById(id, true);
-//        if (c == null) {
-//            return new RestfulResult(StatusCode.NOT_FOUND, "no contest found", null);
-//        }
-//        c.setSolutions(null);
-//        c.setContestComments(null);
-//        c.setCreator(null);
-//        c.setPassword(null);
-//        c.setTeam(null);
-//        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", c);
-//    }
+    @GetMapping("/clone/{id:[0-9]+}")
+    @LogsOfAdmin
+    public RestfulResult cloneContest(@PathVariable Long id, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+        if ((userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1)&&(userService.getUserPermission(tokenModel.getPermissionCode(), "a15") == -1)){
+            return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied!");
+        }
+        Contest c = contestService.getContestById(id, true);
+        if (c == null) {
+            return new RestfulResult(StatusCode.NOT_FOUND, "no contest found", null);
+        }
+        c.setSolutions(null);
+        c.setContestComments(null);
+        c.setCreator(null);
+        c.setPassword(null);
+        c.setTeam(null);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", c);
+    }
 
     @PostMapping("/gate/{cid:[0-9]+}")
     @LogsOfUser
@@ -115,7 +122,7 @@ public class ContestController {
                 return new RestfulResult(StatusCode.REQUEST_ERROR, "password error");
             if (!contest.isStarted())
                 return new RestfulResult(StatusCode.REQUEST_ERROR, "not started", contest.getNormalStartTime());
-            if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
+            if ((userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1)&&(userService.getUserPermission(tokenModel.getPermissionCode(), "a15") == -1)) {
                 if (contest.getPrivilege().equals(Contest.TEAM)) {
                     Team team = contest.getTeam();
                     if (teamService.isUserInTeam(user, team)) {
@@ -134,32 +141,8 @@ public class ContestController {
     }
 
     private boolean isContestCreator(Contest contest, User currentUser) {
-        return contest.getCreator().getId() == currentUser.getId();
+        return contest.getCreator().getId().equals(currentUser.getId());
     }
-
-//    @GetMapping("/background/access/{cid:[0-9]+}")
-//    public RestfulResult accessToGetUpdateContestInfo(@PathVariable("cid") Long cid,
-//                                              @RequestParam("token") String token) {
-//        try{
-//            TokenModel tokenModel = tokenManager.getToken(Base64Util.decodeData(token));
-//            User user = userService.getUserById(tokenModel.getUserId());
-//            if (user == null)
-//                return new RestfulResult(StatusCode.NEED_LOGIN, "未登录");
-//            Contest contest = contestService.getContestById(cid, true);
-//            if (contest == null) {
-//                return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
-//            }
-//            if (!isContestCreator(contest, user) || userService.getUserPermission(tokenModel.getPermissionCode(), "a5") != 1) {
-//                return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied!");
-//            }
-//            return new RestfulResult(StatusCode.HTTP_SUCCESS, "success");
-//        }
-//        catch (Exception e){
-//            e.printStackTrace();
-//        }
-//        return new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
-//    }
-
 
 
     @GetMapping("/background/{cid:[0-9]+}")
@@ -175,11 +158,10 @@ public class ContestController {
             if (contest == null) {
                 return new RestfulResult(StatusCode.NOT_FOUND, "没有找到该比赛 not found");
             }
-            if (!isContestCreator(contest, user) || userService.getUserPermission(tokenModel.getPermissionCode(), "a5") != 1) {
+            if (!isContestCreator(contest, user) && userService.getUserPermission(tokenModel.getPermissionCode(), "a5") != 1) {
                 return new RestfulResult(StatusCode.NO_PRIVILEGE, "Permission denied!");
             }
             contest.setCreator(null);
-//            contest.setProblems(null);
             contest.setSolutions(null);
             contest.setTeam(null);
             contest.setContestComments(null);

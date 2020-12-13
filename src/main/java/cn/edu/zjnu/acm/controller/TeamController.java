@@ -39,15 +39,13 @@ public class TeamController {
     private final UserService userService;
     private final ContestService contestService;
     private final TokenManager tokenManager;
-    private final HttpSession session;
     private final RedisService redisService;
 
-    public TeamController(RedisService redisService, HttpSession session, TokenManager tokenManager, TeamService teamService, UserService userService, ContestService contestService) {
+    public TeamController(RedisService redisService, TokenManager tokenManager, TeamService teamService, UserService userService, ContestService contestService) {
         this.teamService = teamService;
         this.userService = userService;
         this.contestService = contestService;
         this.tokenManager = tokenManager;
-        this.session = session;
         this.redisService = redisService;
     }
 
@@ -319,7 +317,7 @@ public class TeamController {
         if (team == null)
             return new RestfulResult(StatusCode.NOT_FOUND, "邀请码无效");
         teamService.addTeammate(user, team);
-        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS);
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, tid);
     }
 
     @GetMapping("/update/attend/{teamid:[0-9]+}")
@@ -350,13 +348,13 @@ public class TeamController {
         String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
         TokenModel tokenModel = redisService.getToken(tk);
         User user = userService.getUserById(tokenModel.getUserId());
-        if (userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1) {
+        if ((userService.getUserPermission(tokenModel.getPermissionCode(), "a5") == -1)&&(userService.getUserPermission(tokenModel.getPermissionCode(), "a15") == -1)) {
             return new RestfulResult(StatusCode.NO_PRIVILEGE, "permission denied");
         }
         if (teamService.isTeamNameExist(team.getName())) {
             return new RestfulResult(StatusCode.REQUEST_ERROR, "name existed!");
         }
-        if (teamService.checkUserCreateTeamLimit(30, user)) {
+        if (teamService.checkUserCreateTeamLimit(50, user)) {
             return new RestfulResult(StatusCode.REQUEST_ERROR, "you have created too many teams");
         }
         team.setCreator(user);

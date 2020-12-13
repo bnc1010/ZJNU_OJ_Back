@@ -1,6 +1,8 @@
 package cn.edu.zjnu.acm.controller;
 
+import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.LogsOfAdmin;
+import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
 import cn.edu.zjnu.acm.common.ve.ProblemSetVO;
 import cn.edu.zjnu.acm.common.ve.ProblemVO;
@@ -23,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.util.ArrayList;
@@ -264,12 +267,20 @@ public class AdminController {
             e.printStackTrace();
             return  new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
         }
+        for (ProblemSet problemSet : problemSetPage.getContent()) {
+            problemSet.getCreator().setSalt(null);
+            problemSet.getCreator().setPassword(null);
+            problemSet.getCreator().setLevel(-1);
+        }
         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problemSetPage);
     }
 
     @PostMapping("/problemset/insert")
     @LogsOfAdmin
-    public RestfulResult addProblemSet(@RequestBody ProblemSetVO problemSetVO) {
+    public RestfulResult addProblemSet(@RequestBody ProblemSetVO problemSetVO, HttpServletRequest request) {
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+        User user = userService.getUserById(tokenModel.getUserId());
         if (problemSetService.isProblemSetRepeated(problemSetVO.getTitle())) {
             return new RestfulResult(StatusCode.HTTP_FAILURE, "ProblemSet name already existed!");
         }
@@ -279,6 +290,8 @@ public class AdminController {
             problemSet.setTitle(problemSetVO.getTitle());
             problemSet.setActive(problemSetVO.getActive());
             problemSet.setDescription(problemSetVO.getDescription());
+            problemSet.setIsPrivate(problemSetVO.getIsPrivate());
+            problemSet.setCreator(user);
             problemSet.setTags(problemService.convertString2TagReturnSet(problemSetVO.getTags()));
             problemSet.setProblems(problemSetService.getProblemArrayByIds(problemSetVO.getProblems()));
         }

@@ -68,6 +68,11 @@ public class TeamService {
         return map;
     }
 
+    public Page<Team> teamsByCreator(User user, int page, int size) {
+        Page<Team> teams = teamRepository.findByCreator(user, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
+        return teams;
+    }
+
     public Boolean isUserInTeam(User u, Team t) {
         Teammate teammate = teammateRepository.findByUserAndTeam(u, t).orElse(null);
         return teammate != null;

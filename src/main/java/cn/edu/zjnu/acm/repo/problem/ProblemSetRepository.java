@@ -1,5 +1,6 @@
 package cn.edu.zjnu.acm.repo.problem;
 
+import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Problem;
 import cn.edu.zjnu.acm.entity.oj.ProblemSet;
 import cn.edu.zjnu.acm.entity.oj.Tag;
@@ -18,6 +19,14 @@ public interface ProblemSetRepository extends JpaRepository<ProblemSet, Long> {
     Page<ProblemSet> findProblemSetByActive(Pageable pageable, Boolean active);
 
     Page<ProblemSet> findAllByTitleContaining(Pageable pageable, String title);
+
+    Page<ProblemSet> findAllByCreatorAndTitleContaining(Pageable pageable, User user, String title);
+
+    List<ProblemSet> findAllByCreator(User user);
+
+    List<ProblemSet> findAllByCreatorOrActive(User user, Boolean active);
+
+    List<ProblemSet> findAllByActiveAndCreatorNot(Boolean active, User user);
 
     List<ProblemSet> findAllByActiveAndTitleContaining(Boolean active, String title);
 

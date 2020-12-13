@@ -2,9 +2,12 @@ package cn.edu.zjnu.acm.controller;
 
 
 import cn.edu.zjnu.acm.authorization.manager.TokenManager;
+import cn.edu.zjnu.acm.authorization.model.TokenModel;
 import cn.edu.zjnu.acm.common.annotation.IgnoreSecurity;
 import cn.edu.zjnu.acm.common.annotation.LogsOfUser;
+import cn.edu.zjnu.acm.common.constant.Constants;
 import cn.edu.zjnu.acm.common.constant.StatusCode;
+import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.ProblemSet;
 import cn.edu.zjnu.acm.repo.user.UserProblemRepository;
 import cn.edu.zjnu.acm.service.*;
@@ -12,8 +15,11 @@ import cn.edu.zjnu.acm.util.RestfulResult;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,10 +30,14 @@ import java.util.List;
 @RequestMapping("/api/problems/problemset")
 public class ProblemSetController {
     private final ProblemSetService problemSetService;
+    private final RedisService redisService;
+    private final UserService userService;
 
-
-    public ProblemSetController(ProblemSetService problemSetService) {
+    public ProblemSetController(ProblemSetService problemSetService, RedisService redisService,
+                                UserService userService) {
         this.problemSetService = problemSetService;
+        this.redisService = redisService;
+        this.userService = userService;
     }
 
     @IgnoreSecurity
@@ -57,6 +67,11 @@ public class ProblemSetController {
         catch (Exception e){
             return  new RestfulResult(StatusCode.HTTP_FAILURE, "system error");
         }
+        for (ProblemSet problemSet : problemSetPage.getContent()) {
+            problemSet.getCreator().setSalt(null);
+            problemSet.getCreator().setPassword(null);
+            problemSet.getCreator().setLevel(-1);
+        }
         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problemSetPage);
     }
 
@@ -69,4 +84,36 @@ public class ProblemSetController {
         return new RestfulResult(StatusCode.HTTP_SUCCESS, "success", problemSet);
     }
 
+
+    @GetMapping("/available")
+    public RestfulResult getAvaliableProblemSet(@RequestParam("type") int type, HttpServletRequest request){
+        String tk = request.getHeader(Constants.DEFAULT_TOKEN_NAME);
+        TokenModel tokenModel = redisService.getToken(tk);
+        User user = userService.getUserById(tokenModel.getUserId());
+        List<ProblemSet> problemSets = null;
+        try {
+            switch (type){
+                case 1:{
+                    problemSets = problemSetService.getAllProblemSetByCreator(user);
+                    break;
+                }
+                case 2:{
+                    problemSets = problemSetService.getActiveProblemSetNotOfUser(user);
+                    break;
+                }
+                case 3:{
+                    problemSets = problemSetService.getAllActiveProblemSetOrCreator(user);
+                    break;
+                }
+            }
+        }
+        catch (Exception e){
+            return new RestfulResult(StatusCode.HTTP_FAILURE, RestfulResult.ERROR);
+        }
+        for (ProblemSet ps : problemSets){
+            ps.setCreator(null);
+            ps.setTags(null);
+        }
+        return new RestfulResult(StatusCode.HTTP_SUCCESS, RestfulResult.SUCCESS, problemSets);
+    }
 }

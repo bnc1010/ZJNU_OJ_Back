@@ -1,5 +1,6 @@
 package cn.edu.zjnu.acm.service;
 
+import cn.edu.zjnu.acm.entity.User;
 import cn.edu.zjnu.acm.entity.oj.Problem;
 import cn.edu.zjnu.acm.entity.oj.ProblemSet;
 import cn.edu.zjnu.acm.entity.oj.Tag;
@@ -34,6 +35,22 @@ public class ProblemSetService {
 
     public Page<ProblemSet> getAllProblemSet(int page, int size, String search) {
         return problemSetRepository.findAllByTitleContaining(PageRequest.of(page, size), search);
+    }
+
+    public Page<ProblemSet> getAllProblemSet(int page, int size, String search, User user) {
+        return problemSetRepository.findAllByCreatorAndTitleContaining(PageRequest.of(page, size), user, search);
+    }
+
+    public List<ProblemSet> getAllProblemSetByCreator(User user) {
+        return problemSetRepository.findAllByCreator(user);
+    }
+
+    public List<ProblemSet> getAllActiveProblemSetOrCreator(User user) {
+        return problemSetRepository.findAllByCreatorOrActive(user, true);
+    }
+
+    public List<ProblemSet> getActiveProblemSetNotOfUser(User user) {
+        return problemSetRepository.findAllByActiveAndCreatorNot( true, user);
     }
 
     public Page<ProblemSet> getByTagName(int page, int size, List<String> tagNames, List<ProblemSet> problemSet) {
@@ -89,4 +106,5 @@ public class ProblemSetService {
         }
         return problems;
     }
+
 }
